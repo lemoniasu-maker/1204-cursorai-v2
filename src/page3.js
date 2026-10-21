@@ -15,23 +15,6 @@ const LESSONS = [
   { lesson: '10차시', tip: '세 자리 수를 나누어요. 백의 자리 수가 나누는 수보다 작게 만들어요(몫이 두 자리). 남는 것이 있어도 돼요. (예: 250 ÷ 5)' }
 ];
 
-const ITEM_CHOICES = [
-  { name: '사탕', unit: '개' }, { name: '쿠키', unit: '개' }, { name: '색종이', unit: '장' },
-  { name: '연필', unit: '자루' }, { name: '딸기', unit: '개' }, { name: '스티커', unit: '장' },
-  { name: '공책', unit: '권' }, { name: '꽃', unit: '송이' }
-];
-const UNITS = ['개', '장', '자루', '권', '송이'];
-const SHARE_TARGETS = [
-  { label: '명의 친구', count: '명의 친구에게', each: '한 명에게', verb: '나누어 주려고', ask: '줄' },
-  { label: '개의 모둠', count: '개의 모둠에', each: '한 모둠에', verb: '나누어 주려고', ask: '줄' },
-  { label: '개의 상자', count: '개의 상자에', each: '한 상자에', verb: '나누어 담으려고', ask: '담을' },
-  { label: '개의 접시', count: '개의 접시에', each: '한 접시에', verb: '나누어 담으려고', ask: '담을' }
-];
-const GROUP_TARGETS = [
-  { label: '봉지', pack: '봉지', verb: '담으려고' }, { label: '상자', pack: '상자', verb: '담으려고' },
-  { label: '묶음', pack: '묶음', verb: '묶으려고' }, { label: '바구니', pack: '바구니', verb: '담으려고' }
-];
-
 // ===== 상태 =====
 const state = {
   me: null,             // 내 번호
@@ -41,7 +24,7 @@ const state = {
   rev: null,
   seenPosts: new Set(),
   results: {},          // 이 화면에서 채점한 결과 { postId: {correct, text} }
-  maker: { item: '', unit: '개', total: null, mode: null, divisor: null, target: 0, edited: false },
+  maker: { item: '', unit: '', total: null, mode: null, divisor: null, target: '' },
   pollTimer: null,
   aiOn: false
 };
@@ -220,7 +203,6 @@ function applyBoard(data) {
   $('presentBtn').classList.toggle('hidden', !state.teacherPw);
   $('lockBtn').classList.toggle('hidden', !state.teacherPw);
   $('lockBtn').textContent = data.locked ? '🔓 다시 열기' : '🔒 잠그기';
-  $('ruleTip').textContent = `📘 ${l.lesson} — ${l.tip}`;
   if (data.locked) closeMaker();
   renderCards(firstLoad);
 }
@@ -339,17 +321,15 @@ function startPolling() {
 }
 function stopPolling() { clearInterval(state.pollTimer); state.pollTimer = null; }
 
-// ===== 문제 설계 도우미 =====
+// ===== 문제 설계 도우미 (학생이 직접 쓰고, 필요할 때만 도움 받기) =====
 function openMaker() {
-  state.maker = { item: '', unit: '개', total: null, mode: null, divisor: null, target: 0, edited: false };
-  $('itemInput').value = '';
-  $('totalInput').value = '';
-  $('divisorInput').value = '';
-  $('questionInput').value = '';
+  state.maker = { item: '', unit: '', total: null, mode: null, divisor: null, target: '' };
+  ['itemInput', 'unitInput', 'totalInput', 'divisorInput', 'targetInput', 'questionInput'].forEach(id => { $(id).value = ''; });
+  document.querySelectorAll('.help-box').forEach(b => b.classList.add('hidden'));
+  document.querySelectorAll('.help-btn').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('on'));
   $('aiSuggest').classList.add('hidden');
   $('postMsg').textContent = '';
-  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('on'));
-  renderMakerChips();
   updateMaker();
   $('maker').classList.remove('hidden');
   $('makeBtn').classList.add('hidden');
@@ -361,13 +341,47 @@ function closeMaker() {
   if (state.board && !state.board.locked && state.me) $('makeBtn').classList.remove('hidden');
 }
 
-function renderMakerChips() {
+const blank = label => `<span class="blank">${label}</span>`;
+
+// 단계별 도움말 (정답을 채워 주지 않고 생각할 거리만 줌)
+function helpText(step) {
   const m = state.maker;
-  $('itemChips').innerHTML = ITEM_CHOICES.map(c => `<button class="chip ${m.item === c.name ? 'on' : ''}" data-item="${c.name}" data-unit="${c.unit}" type="button">${c.name}</button>`).join('');
-  $('unitChips').innerHTML = UNITS.map(u => `<button class="chip ${m.unit === u ? 'on' : ''}" data-unit-only="${u}" type="button">${u}</button>`).join('');
-  const targets = m.mode === 'group' ? GROUP_TARGETS : SHARE_TARGETS;
-  $('targetChips').innerHTML = m.mode ? targets.map((t, i) => `<button class="chip ${m.target === i ? 'on' : ''}" data-target="${i}" type="button">${m.mode === 'group' ? `${t.label}에 담기` : t.label}</button>`).join('') : '';
-  document.querySelectorAll('.unit-word').forEach(el => { el.textContent = m.unit; });
+  const l = lessonOf(state.board?.level ?? 0);
+  const unit = m.unit || '개';
+  if (step === 'help1') {
+    return '우리 주변에서 친구들과 나누는 물건을 떠올려 봐요.<br>🏫 학교에서 쓰는 물건 · 🍪 간식 · 🌱 생활 속 물건 등<br>내가 고른 물건으로 이야기를 만들면 더 재미있어요!';
+  }
+  if (step === 'help2') {
+    return `📘 <b>${l.lesson}</b> — ${l.tip}<br>세는 말도 함께 써요. (예: 사탕은 '개', 색종이는 '장', 연필은 '자루', 공책은 '권')`;
+  }
+  if (step === 'help3') {
+    return '🎁 <b>똑같이 나누어 주기</b>: 여러 사람(곳)에게 똑같이 나누어 줘요. "한 명에게 몇 개씩?"을 구해요.<br>' +
+      '📦 <b>몇 개씩 묶어 담기</b>: 정해진 수만큼씩 담거나 묶어요. "몇 봉지(묶음)가 될까?"를 구해요.<br>' +
+      '내 문제는 어떤 것을 궁금해하는 문제인지 생각해 봐요.';
+  }
+  if (step === 'help4') {
+    if (m.mode === 'group') {
+      return `한 번에 몇 ${unit}씩 담거나 묶을지 정해요. 그리고 무엇에 담을지 써요. (봉지, 상자, 묶음, 바구니 …)<br>나누는 수는 2부터 9까지로 정해 봐요.`;
+    }
+    return '몇 명(곳)에게 똑같이 나누어 줄지 정해요. 그리고 누구(어디)에게 줄지 써요. (친구, 모둠, 상자, 접시 …)<br>나누는 수는 2부터 9까지로 정해 봐요.';
+  }
+  if (step === 'help5') {
+    const rem = m.total && m.divisor ? m.total % m.divisor : 0;
+    const leftover = rem > 0 ? `, 남는 ${blank('무엇')}은(는) 몇 ${blank('세는 말')}인지` : '';
+    const frame = m.mode === 'group'
+      ? `${blank('무엇')} ${blank('전체 수')}${blank('세는 말')}을(를) 한 ${blank('담을 것')}에 ${blank('몇')}${blank('세는 말')}씩 담으려고 합니다. 몇 ${blank('담을 것')}이(가) ${rem > 0 ? '되고' : '되는지'}${leftover} 구해 봅시다.`
+      : `${blank('무엇')} ${blank('전체 수')}${blank('세는 말')}을(를) ${blank('몇')}명의 ${blank('누구')}에게 똑같이 나누어 주려고 합니다. 한 명에게 몇 ${blank('세는 말')}씩 줄 수 있${rem > 0 ? '고' : '는지'}${leftover} 구해 봅시다.`;
+    return `이런 틀을 보고 빈칸에 내 문제의 내용을 넣어 직접 써 봐요. 내 말로 바꾸어도 좋아요.<br>✏️ ${frame}`;
+  }
+  return '';
+}
+
+function toggleHelp(id, btn) {
+  const box = $(id);
+  const willShow = box.classList.contains('hidden');
+  if (willShow) box.innerHTML = helpText(id);
+  box.classList.toggle('hidden', !willShow);
+  btn.classList.toggle('on', willShow);
 }
 
 // 이 차시에 맞는 수인지 학생 눈높이로 설명
@@ -390,30 +404,28 @@ function explainRule(level, n, d) {
   return '이 시간에 만드는 나눗셈과 맞지 않아요.';
 }
 
-function makeDraft() {
-  const m = state.maker;
-  const rem = m.total % m.divisor;
-  const amount = `${m.total}${m.unit}`;
-  const leftover = rem > 0 ? `, 남는 ${j(m.item, '은', '는')} 몇 ${m.unit}인지` : '';
-  if (m.mode === 'share') {
-    const t = SHARE_TARGETS[m.target];
-    return `${m.item} ${j(amount, '을', '를')} ${m.divisor}${t.count} 똑같이 ${t.verb} 합니다. ${t.each} 몇 ${m.unit}씩 ${t.ask} 수 있${rem > 0 ? '고' : '는지'}${leftover} 구해 봅시다.`;
-  }
-  const g = GROUP_TARGETS[m.target];
-  return `${m.item} ${j(amount, '을', '를')} 한 ${g.pack}에 ${m.divisor}${m.unit}씩 ${g.verb} 합니다. 몇 ${j(g.pack, '이', '가')} ${rem > 0 ? '되고' : '되는지'}${leftover} 구해 봅시다.`;
-}
-
 function updateMaker() {
   const m = state.maker;
   const level = state.board?.level ?? 0;
   m.item = $('itemInput').value.trim();
+  m.unit = $('unitInput').value.trim();
   m.total = $('totalInput').value === '' ? null : Number($('totalInput').value);
   m.divisor = $('divisorInput').value === '' ? null : Number($('divisorInput').value);
+  m.target = $('targetInput').value.trim();
+  const unit = m.unit || '개';
 
   $('step4').classList.toggle('hidden', !m.mode);
-  $('step4Label').textContent = m.mode === 'group'
-    ? `한 번에 몇 ${m.unit}씩 담거나 묶을까요?`
-    : '몇 명(곳)에게 똑같이 나누어 줄까요?';
+  if (m.mode === 'group') {
+    $('targetInput').placeholder = '봉지, 상자 …';
+    $('step4Before').textContent = '';
+    $('step4Mid').textContent = `${unit}씩,`;
+    $('step4After').textContent = '에 담기';
+  } else {
+    $('step4Before').textContent = '';
+    $('targetInput').placeholder = '친구, 모둠 …';
+    $('step4Mid').textContent = '명(곳)의';
+    $('step4After').textContent = '에게 나누어 주기';
+  }
 
   let ok = false;
   const box = $('checkBox');
@@ -422,7 +434,7 @@ function updateMaker() {
     box.classList.remove('hidden');
     box.className = `check-box ${ok ? 'ok' : 'bad'}`;
     box.textContent = ok
-      ? `👍 좋아요! ${m.total} ÷ ${j(m.divisor, '은', '는')} 이 시간에 만드는 나눗셈에 딱 맞아요.`
+      ? `👍 좋아요! ${m.total} ÷ ${j(m.divisor, '은', '는')} 이 시간에 만드는 나눗셈에 딱 맞아요. 이제 문장으로 써 볼까요?`
       : `🤔 ${explainRule(level, m.total, m.divisor)}`;
   } else {
     box.classList.add('hidden');
@@ -430,15 +442,17 @@ function updateMaker() {
 
   const ready = ok && m.item;
   $('step5').classList.toggle('hidden', !ready);
-  if (ready && !m.edited) $('questionInput').value = makeDraft();
-  $('aiPolishBtn').classList.toggle('hidden', !state.aiOn);
+  // 이미 열려 있는 도움말은 바뀐 내용으로 새로 고침
+  document.querySelectorAll('.help-box:not(.hidden)').forEach(b => { b.innerHTML = helpText(b.id); });
 
   const q = $('questionInput').value;
+  $('aiPolishBtn').classList.toggle('hidden', !state.aiOn || !q.trim());
   const nums = (q.match(/\d+/g) || []).map(Number);
   const hasNums = nums.includes(m.total) && nums.includes(m.divisor);
   $('postBtn').disabled = !(ready && q.trim() && hasNums);
-  $('postMsg').textContent = ready && q.trim() && !hasNums ? `문장에 ${j(m.total, '과', '와')} ${j(m.divisor, '이', '가')} 들어가야 해요.` : '';
   $('postMsg').className = 'msg error';
+  $('postMsg').textContent = ready && q.trim().length > 5 && !hasNums
+    ? `문장에 ${j(m.total, '과', '와')} ${j(m.divisor, '이', '가')} 들어가야 해요.` : '';
 }
 
 async function aiPolish() {
@@ -475,7 +489,7 @@ async function aiPolish() {
       box.innerHTML = `🤖 이렇게 바꿔 보면 어때요?<br><b>${esc(suggestion)}</b>
         <div class="maker-actions"><button class="btn btn-primary btn-small" id="useAiBtn" type="button">이 문장 쓰기</button>
         <button class="btn btn-soft btn-small" id="keepMineBtn" type="button">내 문장 그대로</button></div>`;
-      $('useAiBtn').onclick = () => { $('questionInput').value = suggestion; m.edited = true; box.classList.add('hidden'); updateMaker(); };
+      $('useAiBtn').onclick = () => { $('questionInput').value = suggestion; box.classList.add('hidden'); updateMaker(); };
       $('keepMineBtn').onclick = () => box.classList.add('hidden');
     }
   } catch {
@@ -492,7 +506,7 @@ async function submitPost() {
   try {
     const data = await api('POST', {
       action: 'post', boardId: state.board.id, number: state.me,
-      item: m.item, unit: m.unit, total: m.total, divisor: m.divisor, mode: m.mode,
+      item: m.item, unit: m.unit || '개', total: m.total, divisor: m.divisor, mode: m.mode,
       question: $('questionInput').value.trim()
     });
     closeMaker();
@@ -575,40 +589,18 @@ function setupEvents() {
   });
 
   // 문제 설계 도우미
-  $('itemChips').addEventListener('click', e => {
-    const c = e.target.closest('[data-item]');
-    if (!c) return;
-    $('itemInput').value = c.dataset.item;
-    state.maker.unit = c.dataset.unit;
-    state.maker.edited = false;
-    renderMakerChips(); updateMaker();
-  });
-  $('unitChips').addEventListener('click', e => {
-    const c = e.target.closest('[data-unit-only]');
-    if (!c) return;
-    state.maker.unit = c.dataset.unitOnly;
-    state.maker.edited = false;
-    renderMakerChips(); updateMaker();
+  $('maker').addEventListener('click', e => {
+    const h = e.target.closest('[data-help]');
+    if (h) toggleHelp(h.dataset.help, h);
   });
   document.querySelectorAll('.mode-card').forEach(card => {
     card.onclick = () => {
       document.querySelectorAll('.mode-card').forEach(c => c.classList.toggle('on', c === card));
       state.maker.mode = card.dataset.mode;
-      state.maker.target = 0;
-      state.maker.edited = false;
-      renderMakerChips(); updateMaker();
+      updateMaker();
     };
   });
-  $('targetChips').addEventListener('click', e => {
-    const c = e.target.closest('[data-target]');
-    if (!c) return;
-    state.maker.target = Number(c.dataset.target);
-    state.maker.edited = false;
-    renderMakerChips(); updateMaker();
-  });
-  ['itemInput', 'totalInput', 'divisorInput'].forEach(id => $(id).addEventListener('input', () => { state.maker.edited = false; updateMaker(); }));
-  $('questionInput').addEventListener('input', () => { state.maker.edited = true; updateMaker(); });
-  $('redraftBtn').onclick = () => { state.maker.edited = false; updateMaker(); };
+  ['itemInput', 'unitInput', 'totalInput', 'divisorInput', 'targetInput', 'questionInput'].forEach(id => $(id).addEventListener('input', updateMaker));
   $('aiPolishBtn').onclick = aiPolish;
   $('postBtn').onclick = submitPost;
 

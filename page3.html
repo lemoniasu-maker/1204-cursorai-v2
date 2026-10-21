@@ -261,6 +261,10 @@
     .mode-card.on { border-color: #8b5cf6; background: #ede9fe; box-shadow: 0 0 0 4px rgba(167,139,250,0.3); }
     .mode-card b { display: block; font-size: 1.1rem; color: var(--text-dark); margin-bottom: 0.25rem; }
     .mode-card small { font-size: 0.88rem; color: var(--text-medium); line-height: 1.4; display: block; }
+    .help-btn { font-family: inherit; font-size: 0.85rem; border: 2px solid #fde68a; background: #fffbeb; color: #92400e; border-radius: 999px; padding: 0.15rem 0.65rem; cursor: pointer; margin-left: auto; touch-action: manipulation; }
+    .help-btn.on { background: #fde68a; }
+    .help-box { background: #fffbeb; border: 2px dashed #fcd34d; border-radius: 14px; padding: 0.6rem 0.85rem; margin-bottom: 0.6rem; font-size: 0.97rem; line-height: 1.7; color: #78350f; }
+    .blank { display: inline-block; min-width: 3.2em; border-bottom: 2px solid #b45309; text-align: center; color: #b45309; font-size: 0.85em; padding: 0 0.2em; margin: 0 0.1em; }
     .check-box { margin-top: 0.75rem; border-radius: 14px; padding: 0.65rem 0.9rem; font-size: 1rem; line-height: 1.5; }
     .check-box.ok { background: #ecfdf5; color: #047857; border: 2px solid #a7f3d0; }
     .check-box.bad { background: #fff1f2; color: #be123c; border: 2px solid #fecdd3; }
@@ -395,57 +399,52 @@
         <h3>🧩 문제 설계 도우미</h3>
         <button class="btn btn-soft btn-small" id="closeMakerBtn" type="button">닫기</button>
       </div>
-      <div class="rule-tip" id="ruleTip"></div>
+      <p class="muted" style="margin-bottom: 0.4rem;">스스로 생각해서 써 보고, 막히면 <b>💡 도움 받기</b>를 눌러요.</p>
 
       <div class="step">
-        <div class="step-label"><span class="step-num">1</span>무엇을 나눌까요?</div>
+        <div class="step-label"><span class="step-num">1</span>무엇을 나눌까요? <button class="help-btn" data-help="help1" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help1"></div>
         <div class="step-row">
-          <input type="text" id="itemInput" maxlength="12" placeholder="예: 쿠키" style="width: 160px;">
-          <div class="chips" id="itemChips"></div>
-        </div>
-        <div class="step-row" style="margin-top: 0.5rem;">
-          <span class="muted">세는 말:</span>
-          <div class="chips" id="unitChips"></div>
+          <input type="text" id="itemInput" maxlength="12" placeholder="나눌 물건" style="width: 200px;">
         </div>
       </div>
 
       <div class="step">
-        <div class="step-label"><span class="step-num">2</span>모두 몇 <span class="unit-word">개</span>인가요?</div>
+        <div class="step-label"><span class="step-num">2</span>전체는 몇 개인가요? <button class="help-btn" data-help="help2" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help2"></div>
         <div class="step-row">
           <input type="number" id="totalInput" inputmode="numeric" placeholder="수">
-          <span class="unit-word">개</span>
+          <input type="text" id="unitInput" maxlength="4" placeholder="세는 말" style="width: 110px;">
         </div>
       </div>
 
       <div class="step">
-        <div class="step-label"><span class="step-num">3</span>어떤 상황인가요?</div>
+        <div class="step-label"><span class="step-num">3</span>어떤 상황인가요? <button class="help-btn" data-help="help3" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help3"></div>
         <div class="mode-cards">
-          <button class="mode-card" data-mode="share" type="button">
-            <b>🎁 똑같이 나누어 주기</b>
-            <small>여러 사람(곳)에게 똑같이 나누어 줘요.<br>"한 명에게 몇 개씩?"을 구해요.</small>
-          </button>
-          <button class="mode-card" data-mode="group" type="button">
-            <b>📦 몇 개씩 묶어 담기</b>
-            <small>정해진 수만큼씩 담거나 묶어요.<br>"몇 묶음(봉지)이 될까?"를 구해요.</small>
-          </button>
+          <button class="mode-card" data-mode="share" type="button"><b>🎁 똑같이 나누어 주기</b></button>
+          <button class="mode-card" data-mode="group" type="button"><b>📦 몇 개씩 묶어 담기</b></button>
         </div>
       </div>
 
       <div class="step hidden" id="step4">
-        <div class="step-label"><span class="step-num">4</span><span id="step4Label"></span></div>
+        <div class="step-label"><span class="step-num">4</span>어떻게 나누어 줄까요? <button class="help-btn" data-help="help4" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help4"></div>
         <div class="step-row">
+          <span id="step4Before"></span>
           <input type="number" id="divisorInput" inputmode="numeric" placeholder="수">
-          <div class="chips" id="targetChips"></div>
+          <span id="step4Mid"></span>
+          <input type="text" id="targetInput" maxlength="8" style="width: 130px;">
+          <span id="step4After"></span>
         </div>
         <div class="check-box hidden" id="checkBox"></div>
       </div>
 
       <div class="step hidden" id="step5">
-        <div class="step-label"><span class="step-num">5</span>문장으로 완성해요</div>
-        <p class="muted" style="margin-bottom: 0.5rem;">초안을 내 말로 바꾸어도 좋아요. 두 수는 꼭 들어가야 해요.</p>
-        <textarea id="questionInput" maxlength="300"></textarea>
+        <div class="step-label"><span class="step-num">5</span>문장으로 완성해요 <button class="help-btn" data-help="help5" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help5"></div>
+        <textarea id="questionInput" maxlength="300" placeholder="내가 만든 문제를 문장으로 써 보세요."></textarea>
         <div class="maker-actions">
-          <button class="btn btn-soft btn-small" id="redraftBtn" type="button">↺ 초안 다시 만들기</button>
           <button class="btn btn-soft btn-small hidden" id="aiPolishBtn" type="button">✨ AI에게 문장 다듬기 도움 받기</button>
         </div>
         <div class="ai-suggest hidden" id="aiSuggest"></div>
