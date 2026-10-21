@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>나눗셈 탐험대</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/fonts/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --pastel-blue: #a3c7ff;
+      --pastel-pink: #ffb3c6;
+      --pastel-yellow: #ffe8a3;
+      --pastel-green: #b4f8c8;
+      --pastel-purple: #d7aefb;
+      --text-dark: #1e293b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'HakgyoansimBoadmarker', 'Jua', sans-serif;
+      font-size: 18px;
+      min-height: 100vh;
+      background-image: url('./image/Gemini_Generated_Image_r878rur878rur878 (1).png');
+      background-size: 100% auto;
+      background-position: top center;
+      background-repeat: no-repeat;
+      background-color: #a3d9ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      padding-top: max(36vh, 360px);
+      padding-bottom: 3rem;
+      position: relative;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 1000px;
+      width: 100%;
+      padding: 0 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: white;
+      margin-bottom: 0.5rem;
+      text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3), 
+                   0 0 20px rgba(255, 255, 255, 0.5);
+      display: none;
+    }
+
+    .subtitle {
+      font-size: 1.25rem;
+      color: white;
+      margin-bottom: 3rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+      justify-items: center;
+      align-items: start;
+      margin: 0 auto;
+      padding: 0;
+    }
+
+    @media (max-width: 768px) {
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      body {
+        padding-top: max(32vh, 300px);
+      }
+      
+      .menu-card {
+        max-width: 400px;
+      }
+    }
+
+    .menu-card {
+      background: linear-gradient(135deg, 
+        rgba(163, 199, 255, 0.95) 0%, 
+        rgba(255, 179, 198, 0.95) 50%, 
+        rgba(255, 232, 163, 0.95) 100%);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      border: 4px solid rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 300px;
+      margin: 0 auto;
+      animation: cardShine 3s ease-in-out infinite;
+    }
+
+    .menu-card:nth-child(1) {
+      background: linear-gradient(135deg, 
+        rgba(163, 199, 255, 0.95) 0%, 
+        rgba(180, 210, 255, 0.95) 100%);
+      border-color: rgba(163, 199, 255, 0.8);
+      animation-delay: 0s;
+    }
+
+    .menu-card:nth-child(2) {
+      background: linear-gradient(135deg, 
+        rgba(255, 179, 198, 0.95) 0%, 
+        rgba(255, 200, 215, 0.95) 100%);
+      border-color: rgba(255, 179, 198, 0.8);
+      animation-delay: 0.4s;
+    }
+
+    .menu-card:nth-child(3) {
+      background: linear-gradient(135deg, 
+        rgba(180, 248, 200, 0.95) 0%, 
+        rgba(200, 250, 215, 0.95) 100%);
+      border-color: rgba(180, 248, 200, 0.8);
+      animation-delay: 0.8s;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+    }
+
+    .menu-icon {
+      width: 240px;
+      height: 240px;
+      margin: 0 auto 1rem;
+      display: block;
+      object-fit: contain;
+    }
+
+    .menu-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 0.5rem;
+    }
+
+    .menu-desc {
+      font-size: 1rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .subtitle {
+        font-size: 1rem;
+      }
+      
+      .menu-card {
+        padding: 2rem 1.5rem;
+        max-width: 100%;
+      }
+      
+      .menu-icon {
+        width: 200px;
+        height: 200px;
+      }
+      
+      body {
+        padding-top: max(28vh, 240px);
+      }
+      
+      .copyright {
+        font-size: 0.95rem;
+        padding: 1.25rem 1.5rem;
+      }
+    }
+
+    /* ===== 저작권 ===== */
+    .copyright {
+      margin-top: 2rem;
+      padding: 1.5rem 2rem;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e293b;
+      text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+      width: 100%;
+    }
+
+    /* ===== 반짝이는 별 효과 ===== */
+    @keyframes twinkle {
+      0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1.2);
+      }
+    }
+
+    .sparkle {
+      position: fixed;
+      background: radial-gradient(circle, 
+        rgba(255, 255, 255, 0.9) 0%, 
+        rgba(255, 255, 255, 0.6) 15%,
+        rgba(255, 255, 200, 0.3) 30%,
+        rgba(255, 255, 200, 0.1) 50%,
+        rgba(255, 255, 200, 0) 70%);
+      border-radius: 50%;
+      filter: blur(8px);
+      animation: twinkle 3s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .sparkle-sm { 
+      width: 60px; 
+      height: 60px; 
+    }
+
+    .sparkle-md { 
+      width: 80px; 
+      height: 80px; 
+    }
+
+    .sparkle-lg { 
+      width: 100px; 
+      height: 100px; 
+    }
+
+    /* ===== 카드 반짝이는 효과 ===== */
+    @keyframes cardShine {
+      0%, 100% {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      }
+      50% {
+        box-shadow: 0 8px 32px rgba(255, 255, 255, 0.4),
+                    0 0 20px rgba(163, 199, 255, 0.6);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 반짝이는 별 효과 -->
+<div class="sparkle sparkle-md" style="top: 15%; left: 20%; animation-delay: 0s;"></div>
+<div class="sparkle sparkle-sm" style="top: 30%; left: 80%; animation-delay: 0.8s;"></div>
+<div class="sparkle sparkle-lg" style="top: 50%; left: 10%; animation-delay: 1.2s;"></div>
+<div class="sparkle sparkle-md" style="top: 70%; left: 70%; animation-delay: 0.4s;"></div>
+<div class="sparkle sparkle-sm" style="top: 85%; left: 40%; animation-delay: 1.6s;"></div>
+
+<div class="container">
+  <h1>🧮 나눗셈 탐험대</h1>
+  <p class="subtitle">재미있게 나눗셈을 배워봐요!</p>
+  
+  <div class="menu-grid">
+    <a href="page1.html" class="menu-card">
+      <img src="./image/1.png" alt="수모형 활동하기" class="menu-icon">
+      <h2 class="menu-title">1. 수모형 활동하기</h2>
+      <p class="menu-desc">동전 모형을 직접 움직이며<br>나눗셈의 원리를 알아보아요!</p>
+    </a>
+    
+    <a href="page2.html" class="menu-card">
+      <img src="./image/2.png" alt="실생활 문제 풀이" class="menu-icon">
+      <h2 class="menu-title">2. 실생활 문제 풀이</h2>
+      <p class="menu-desc">AI 선생님이 만든 문제를 풀고<br>나눗셈 실력을 키워보아요!</p>
+    </a>
+    
+    <a href="page3.html" class="menu-card">
+      <img src="./image/3.png" alt="문제 만들기" class="menu-icon">
+      <h2 class="menu-title">3. 문제 만들기</h2>
+      <p class="menu-desc">나만의 나눗셈 문제를<br>직접 만들어 보아요!</p>
+    </a>
+  </div>
+  
+  <footer class="copyright">
+    Copyright © 2025 둥글쌤. All rights reserved.
+  </footer>
+</div>
+
+</body>
+</html>
+

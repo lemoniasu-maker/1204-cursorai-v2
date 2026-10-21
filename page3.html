@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>나눗셈 실생활 문제 만들기 - 나눗셈 탐험대</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/fonts/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <style>
+    /* ===== 공통 스타일 (page1, page2와 통일) ===== */
+    :root {
+      --pastel-blue: #a3c7ff;
+      --pastel-pink: #ffb3c6;
+      --pastel-yellow: #ffe8a3;
+      --pastel-green: #b4f8c8;
+      --pastel-purple: #d7aefb;
+      --text-dark: #1e293b;
+      --text-medium: #475569;
+      --text-light: #64748b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'HakgyoansimBoadmarker', 'Jua', sans-serif;
+      font-size: 18px;
+      min-height: 100vh;
+      background-image: url('./image/Gemini_Generated_Image_r5nlnur5nlnur5nl.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 4px solid rgba(163, 199, 255, 0.6);
+      overflow: hidden;
+    }
+
+    /* ===== 네비게이션 바 ===== */
+    .navbar {
+      background: white;
+      border-bottom: 3px solid rgba(163, 199, 255, 0.6);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .nav-home {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .nav-home:hover {
+      color: var(--pastel-blue);
+    }
+
+    .nav-home-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--pastel-blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      border: 2px solid #7ab3ff;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.4);
+      transition: all 0.2s;
+    }
+
+    .nav-home:hover .nav-home-icon {
+      transform: scale(1.1);
+      background: #7ab3ff;
+    }
+
+    .nav-logo {
+      height: 50px;
+      object-fit: contain;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
+      padding: 0.5rem 1rem;
+      background: rgba(163, 199, 255, 0.2);
+      border: 2px solid transparent;
+      border-radius: 20px;
+      color: var(--text-dark);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover {
+      background: rgba(163, 199, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .nav-link.active {
+      background: var(--pastel-blue);
+      border-color: #7ab3ff;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.4);
+    }
+
+    @media (max-width: 600px) {
+      .navbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .nav-home {
+        text-align: center;
+      }
+
+      .nav-links {
+        justify-content: center;
+      }
+
+      .nav-link {
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+      }
+    }
+
+    /* ===== 헤더 ===== */
+    .header {
+      background: linear-gradient(90deg, var(--pastel-blue), var(--pastel-purple), var(--pastel-pink));
+      padding: 1.5rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .header h1 {
+      color: var(--text-dark);
+      font-size: 1.75rem;
+      font-weight: 800;
+      text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    /* ===== API 상태 배너 ===== */
+    .status-bar {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .status-bar.connected {
+      background: rgba(180, 248, 200, 0.5);
+      color: #059669;
+    }
+
+    .status-bar.disconnected {
+      background: rgba(255, 179, 198, 0.5);
+      color: #dc2626;
+    }
+
+    /* ===== 섹션 공통 ===== */
+    .section {
+      padding: 1.5rem;
+      border-bottom: 2px dashed rgba(163, 199, 255, 0.5);
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 1rem;
+    }
+
+    .section-title::before {
+      content: '•';
+      color: var(--pastel-blue);
+      font-size: 1.5rem;
+    }
+
+    /* ===== 문제 작성 영역 ===== */
+    .problem-textarea {
+      width: 100%;
+      min-height: 180px;
+      padding: 1rem;
+      border: 2px solid rgba(163, 199, 255, 0.6);
+      border-radius: 16px;
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.2);
+    }
+
+    .problem-textarea:focus {
+      border-color: var(--pastel-blue);
+      box-shadow: 0 0 0 3px rgba(163, 199, 255, 0.3);
+    }
+
+    .problem-textarea::placeholder {
+      color: var(--text-light);
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      padding: 0.625rem 1.25rem;
+      border: none;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary {
+      background: var(--pastel-blue);
+      color: var(--text-dark);
+    }
+
+    .btn-secondary:hover {
+      background: #7ab3ff;
+      transform: scale(1.05);
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
+
+    /* ===== AI 튜터 버튼 ===== */
+    .ai-tutor-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--pastel-blue);
+      border: 2px solid #7ab3ff;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 1rem;
+    }
+
+    /* ===== 채팅 영역 ===== */
+    .chat-container {
+      background: white;
+      border: 2px solid rgba(163, 199, 255, 0.6);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.2);
+    }
+
+    .chat-log {
+      height: 350px;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chat-message {
+      max-width: 85%;
+      padding: 0.75rem 1rem;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      background: var(--pastel-blue);
+      color: var(--text-dark);
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.ai {
+      align-self: flex-start;
+      background: #f1f5f9;
+      color: var(--text-dark);
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-message.loading {
+      background: #f1f5f9;
+      color: var(--text-medium);
+    }
+
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .typing-indicator span {
+      width: 8px;
+      height: 8px;
+      background: var(--text-light);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem;
+      border-top: 2px dashed rgba(163, 199, 255, 0.5);
+      background: rgba(248, 250, 252, 0.8);
+    }
+
+    .paste-btn {
+      padding: 0.75rem 1rem;
+      background: var(--pastel-yellow);
+      border: 2px solid #ffd966;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .paste-btn:hover {
+      background: #ffd966;
+      transform: scale(1.05);
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 2px solid rgba(163, 199, 255, 0.6);
+      border-radius: 24px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--pastel-blue);
+      box-shadow: 0 0 0 3px rgba(163, 199, 255, 0.3);
+    }
+
+    .send-btn {
+      padding: 0.75rem 1.25rem;
+      background: var(--pastel-blue);
+      border: none;
+      border-radius: 24px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .send-btn:hover {
+      background: #7ab3ff;
+      transform: scale(1.05);
+    }
+
+    .send-btn:disabled {
+      background: #e2e8f0;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ===== 환영 메시지 ===== */
+    .welcome-message {
+      text-align: center;
+      color: var(--text-light);
+      padding: 2rem;
+    }
+
+    .welcome-message .emoji {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .welcome-message p {
+      margin-bottom: 0.75rem;
+    }
+
+    .welcome-message .instruction {
+      font-size: 0.85rem;
+      color: var(--text-medium);
+      background: rgba(163, 199, 255, 0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+      border: 1px solid rgba(163, 199, 255, 0.4);
+    }
+
+    .welcome-message .instruction strong {
+      color: var(--pastel-blue);
+      font-weight: 700;
+    }
+
+    /* ===== 반응형 ===== */
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1.4rem;
+      }
+      
+      .section {
+        padding: 1rem;
+      }
+      
+      .chat-log {
+        height: 280px;
+      }
+      
+      .button-group {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+
+      .chat-input-area {
+        flex-wrap: wrap;
+      }
+
+      .paste-btn {
+        font-size: 0.85rem;
+        padding: 0.625rem 0.875rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 네비게이션 바 -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-home">
+      <span class="nav-home-icon">🏠</span>
+      <img src="./image/head.png" alt="나눗셈 탐험대" class="nav-logo">
+    </a>
+    <div class="nav-links">
+      <a href="page1.html" class="nav-link">1단계: 수모형 탐구</a>
+      <a href="page2.html" class="nav-link">2단계: 실생활 문제</a>
+      <a href="page3.html" class="nav-link active">3단계: 문제 만들기</a>
+    </div>
+  </nav>
+
+  <!-- 헤더 -->
+  <header class="header">
+    <h1>나눗셈 실생활 문제 만들기</h1>
+  </header>
+
+  <!-- API 상태 배너 -->
+  <div class="status-bar" id="statusBar">
+    <span>🔄 API 연결 확인 중...</span>
+  </div>
+
+  <!-- 이름 입력 영역 -->
+  <section class="section">
+    <h2 class="section-title">이름을 입력하세요.</h2>
+    <input 
+      type="text" 
+      class="problem-textarea" 
+      id="nameInput" 
+      placeholder="이름을 입력해주세요"
+      style="min-height: 60px; padding: 1rem;"
+    />
+  </section>
+
+  <!-- 문제 작성 영역 -->
+  <section class="section">
+    <h2 class="section-title">나만의 나눗셈 실생활 문제를 만들어 봅시다.</h2>
+    <textarea 
+      class="problem-textarea" 
+      id="problemTextarea" 
+      placeholder="예시: 사탕 24개를 3명의 친구에게 똑같이 나누어 주려고 합니다. 한 명에게 몇 개씩 줄 수 있을까요?&#10;&#10;나만의 창의적인 나눗셈 문제를 만들어 보세요!"
+    ></textarea>
+    <div class="button-group">
+      <button class="btn btn-secondary" id="copyBtn">복사</button>
+    </div>
+  </section>
+
+  <!-- AI 튜터 채팅 영역 -->
+  <section class="section">
+    <div class="ai-tutor-btn">
+      <span>🤖</span>
+      <span>AI 선생님께 조언 받기</span>
+    </div>
+    
+    <div class="chat-container">
+      <div class="chat-log" id="chatLog">
+        <div class="welcome-message">
+          <div class="emoji">👨‍🏫</div>
+          <p>안녕하세요! AI 선생님이에요.<br>제출하기 전 AI 선생님의 피드백을 받고 문제를 수정하여 제출하세요!</p>
+          <div class="instruction">
+            💡 <strong>팁:</strong> 아래 채팅창에 <strong>붙여넣기 버튼</strong>을 클릭하여 "이 문제가 괜찮을까요?"라고 물어보세요!
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <button class="paste-btn" id="pasteBtn" title="위에서 작성한 문제를 붙여넣기">📋 붙여넣기</button>
+        <input 
+          type="text" 
+          class="chat-input" 
+          id="chatInput" 
+          placeholder="AI 선생님께 질문하기..."
+        />
+        <button class="send-btn" id="sendBtn">전송</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI 피드백 후 문제 수정 영역 (대화 후 표시) -->
+  <section class="section" id="revisedSection" style="display: none;">
+    <h2 class="section-title">AI 선생님과 대화하고 나서 나의 문제를 수정해 봅시다.</h2>
+    <textarea 
+      class="problem-textarea" 
+      id="revisedProblemTextarea" 
+      placeholder="AI 선생님의 조언을 참고하여 문제를 수정해 주세요!"
+    ></textarea>
+    <div style="text-align: center; margin-top: 1rem;">
+      <button class="btn btn-primary" id="finalSubmitBtn" style="font-size: 1.1rem; padding: 0.875rem 2rem;">
+        선생님께 제출하기 📤
+      </button>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="./src/page3.js"></script>
+
+</body>
+</html>
+

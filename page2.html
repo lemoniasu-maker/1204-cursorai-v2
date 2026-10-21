@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>실생활 문제 풀이 - 나눗셈 탐험대</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/fonts/stylesheet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <style>
+    /* ===== 공통 스타일 (page1과 통일) ===== */
+    :root {
+      --pastel-blue: #a3c7ff;
+      --pastel-pink: #ffb3c6;
+      --pastel-yellow: #ffe8a3;
+      --pastel-green: #b4f8c8;
+      --pastel-purple: #d7aefb;
+      --text-dark: #1e293b;
+      --text-medium: #475569;
+      --text-light: #64748b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'HakgyoansimBoadmarker', 'Jua', sans-serif;
+      font-size: 18px;
+      min-height: 100vh;
+      background-image: url('./image/Gemini_Generated_Image_xemqeoxemqeoxemq.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 4px solid rgba(163, 199, 255, 0.6);
+      overflow: hidden;
+    }
+
+    /* ===== 네비게이션 바 ===== */
+    .navbar {
+      background: white;
+      border-bottom: 3px solid rgba(163, 199, 255, 0.6);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .nav-home {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .nav-home:hover {
+      color: var(--pastel-blue);
+    }
+
+    .nav-home-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--pastel-blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      border: 2px solid #7ab3ff;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.4);
+      transition: all 0.2s;
+    }
+
+    .nav-home:hover .nav-home-icon {
+      transform: scale(1.1);
+      background: #7ab3ff;
+    }
+
+    .nav-logo {
+      height: 50px;
+      object-fit: contain;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
+      padding: 0.5rem 1rem;
+      background: rgba(163, 199, 255, 0.2);
+      border: 2px solid transparent;
+      border-radius: 20px;
+      color: var(--text-dark);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover {
+      background: rgba(163, 199, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .nav-link.active {
+      background: var(--pastel-blue);
+      border-color: #7ab3ff;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.4);
+    }
+
+    @media (max-width: 600px) {
+      .navbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .nav-home {
+        text-align: center;
+      }
+
+      .nav-links {
+        justify-content: center;
+      }
+
+      .nav-link {
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+      }
+    }
+
+    /* ===== 헤더 ===== */
+    .header {
+      background: linear-gradient(90deg, var(--pastel-blue), var(--pastel-purple), var(--pastel-pink));
+      padding: 1.5rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .header h1 {
+      color: var(--text-dark);
+      font-size: 1.75rem;
+      font-weight: 800;
+      text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    /* ===== API 상태 배너 ===== */
+    .status-bar {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .status-bar.connected {
+      background: rgba(180, 248, 200, 0.5);
+      color: #059669;
+    }
+
+    .status-bar.disconnected {
+      background: rgba(255, 179, 198, 0.5);
+      color: #dc2626;
+    }
+
+    /* ===== 섹션 공통 ===== */
+    .section {
+      padding: 1.5rem;
+      border-bottom: 2px dashed rgba(163, 199, 255, 0.5);
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 1rem;
+    }
+
+    .section-title::before {
+      content: '•';
+      color: var(--pastel-blue);
+      font-size: 1.5rem;
+    }
+
+    /* ===== 학습 유형 선택 버튼 ===== */
+    .level-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 600px) {
+      .level-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .level-btn {
+      padding: 0.875rem 1rem;
+      border: 2px solid var(--pastel-blue);
+      border-radius: 12px;
+      background: white;
+      color: var(--text-dark);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .level-btn:hover {
+      background: rgba(163, 199, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .level-btn.active {
+      background: var(--pastel-blue);
+      border-color: #7ab3ff;
+      box-shadow: 0 4px 12px rgba(163, 199, 255, 0.5);
+    }
+
+    /* ===== 문제 표시 영역 ===== */
+    .problem-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .new-problem-btn {
+      padding: 0.5rem 1rem;
+      background: var(--pastel-blue);
+      border: none;
+      border-radius: 20px;
+      color: var(--text-dark);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .new-problem-btn:hover {
+      background: #7ab3ff;
+      transform: scale(1.05);
+    }
+
+    .problem-box {
+      background: white;
+      border: 2px solid rgba(163, 199, 255, 0.6);
+      border-radius: 16px;
+      padding: 2rem;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.2);
+    }
+
+    .problem-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      line-height: 1.6;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(163, 199, 255, 0.3);
+      border-top-color: var(--pastel-blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: var(--text-medium);
+      font-size: 1rem;
+    }
+
+    /* ===== 캔버스 (풀이 공간) ===== */
+    .canvas-container {
+      background: white;
+      border: 2px solid rgba(163, 199, 255, 0.6);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.2);
+    }
+
+    #drawingCanvas {
+      width: 100%;
+      height: 500px;
+      display: block;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .canvas-tools {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: rgba(248, 250, 252, 0.8);
+      border-top: 2px dashed rgba(0, 0, 0, 0.1);
+    }
+
+    .tool-btn {
+      width: 44px;
+      height: 44px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+      font-size: 1.25rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tool-btn:hover {
+      background: #f1f5f9;
+      transform: translateY(-2px);
+    }
+
+    .tool-btn.active {
+      border-color: var(--pastel-blue);
+      background: rgba(163, 199, 255, 0.2);
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.4);
+    }
+
+    .color-picker {
+      width: 36px;
+      height: 36px;
+      border: 2px solid #e2e8f0;
+      border-radius: 50%;
+      cursor: pointer;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .reset-btn {
+      padding: 0.5rem 1rem;
+      background: var(--pastel-blue);
+      border: none;
+      border-radius: 20px;
+      color: var(--text-dark);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .reset-btn:hover {
+      background: #7ab3ff;
+    }
+
+    /* ===== 굵기 선택 슬라이더 ===== */
+    .width-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: white;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+    }
+
+    .width-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-medium);
+      white-space: nowrap;
+    }
+
+    .width-slider {
+      width: 80px;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(to right, #e2e8f0, var(--pastel-blue));
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .width-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--pastel-blue);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s;
+    }
+
+    .width-slider::-webkit-slider-thumb:hover {
+      background: #7ab3ff;
+      transform: scale(1.2);
+    }
+
+    .width-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: var(--pastel-blue);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s;
+    }
+
+    .width-slider::-moz-range-thumb:hover {
+      background: #7ab3ff;
+      transform: scale(1.2);
+    }
+
+    .width-value {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      min-width: 24px;
+      text-align: center;
+    }
+
+    /* ===== 정답 입력 ===== */
+    .answer-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+
+    .answer-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .answer-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-medium);
+      text-align: center;
+    }
+
+    .answer-input {
+      width: 100px;
+      padding: 0.875rem 1rem;
+      border: 2px solid rgba(163, 199, 255, 0.6);
+      border-radius: 12px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      outline: none;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.2);
+    }
+
+    .answer-input:focus {
+      border-color: var(--pastel-blue);
+      box-shadow: 0 0 0 3px rgba(163, 199, 255, 0.3);
+    }
+
+    .answer-input:disabled {
+      background: #f8fafc;
+      cursor: not-allowed;
+    }
+
+    .check-btn {
+      padding: 0.875rem 1.5rem;
+      background: var(--pastel-blue);
+      border: none;
+      border-radius: 20px;
+      color: var(--text-dark);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .check-btn:hover {
+      background: #7ab3ff;
+      transform: scale(1.05);
+    }
+
+    .check-btn:disabled {
+      background: #e2e8f0;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ===== AI 피드백 ===== */
+    .feedback-box {
+      background: white;
+      border: 2px solid rgba(163, 199, 255, 0.6);
+      border-radius: 16px;
+      padding: 1.5rem;
+      min-height: 100px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.2);
+    }
+
+    .feedback-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-medium);
+      margin-bottom: 0.75rem;
+    }
+
+    .feedback-content {
+      font-size: 1.1rem;
+      color: var(--text-dark);
+      line-height: 1.5;
+    }
+
+    .feedback-correct {
+      color: #059669;
+      font-weight: 700;
+    }
+
+    .feedback-wrong {
+      color: #dc2626;
+    }
+
+    .feedback-hint {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: rgba(255, 232, 163, 0.5);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: var(--text-dark);
+    }
+
+    /* ===== 축하 효과 ===== */
+    .confetti {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* ===== 반응형 ===== */
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1.4rem;
+      }
+      
+      .section {
+        padding: 1rem;
+      }
+      
+      .problem-text {
+        font-size: 1.1rem;
+      }
+      
+      .answer-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .answer-input {
+        max-width: none;
+      }
+
+      .canvas-tools {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .width-group {
+        padding: 0.375rem 0.5rem;
+      }
+
+      .width-label {
+        font-size: 0.65rem;
+      }
+
+      .width-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 네비게이션 바 -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-home">
+      <span class="nav-home-icon">🏠</span>
+      <img src="./image/head.png" alt="나눗셈 탐험대" class="nav-logo">
+    </a>
+    <div class="nav-links">
+      <a href="page1.html" class="nav-link">1단계: 수모형 탐구</a>
+      <a href="page2.html" class="nav-link active">2단계: 실생활 문제</a>
+      <a href="page3.html" class="nav-link">3단계: 문제 만들기</a>
+    </div>
+  </nav>
+
+  <!-- 헤더 -->
+  <header class="header">
+    <h1>실생활 문제 풀이 연습하기</h1>
+  </header>
+
+  <!-- API 상태 배너 -->
+  <div class="status-bar" id="statusBar">
+    <span>🔄 API 연결 확인 중...</span>
+  </div>
+
+  <!-- 학습 유형 선택 -->
+  <section class="section">
+    <h2 class="section-title">공부할 부분을 선택하세요.</h2>
+    <div class="level-grid">
+      <button class="level-btn" data-level="0">(몇십)÷(몇) (1)</button>
+      <button class="level-btn" data-level="1">(몇십)÷(몇) (2)</button>
+      <button class="level-btn" data-level="2">(몇십몇)÷(몇) (1)</button>
+      <button class="level-btn" data-level="3">(몇십몇)÷(몇) (2)</button>
+      <button class="level-btn" data-level="4">(세 자리 수)÷(한 자리 수) (1)</button>
+      <button class="level-btn" data-level="5">(세 자리 수)÷(한 자리 수) (2)</button>
+    </div>
+  </section>
+
+  <!-- 문제 표시 영역 -->
+  <section class="section">
+    <div class="problem-header">
+      <h2 class="section-title">나눗셈 실생활 문제 제시</h2>
+      <button class="new-problem-btn" onclick="generateNewProblem()">다른 문제</button>
+    </div>
+    <div class="problem-box" id="problemBox">
+      <p class="problem-text" id="problemText">위에서 공부할 유형을 선택해 주세요!</p>
+    </div>
+  </section>
+
+  <!-- 풀이 캔버스 -->
+  <section class="section">
+    <div class="canvas-container">
+      <canvas id="drawingCanvas"></canvas>
+      <div class="canvas-tools">
+        <button class="tool-btn active" id="pencilBtn" title="연필">✏️</button>
+        <div class="width-group">
+          <span class="width-label">펜</span>
+          <input type="range" class="width-slider" id="pencilSlider" min="1" max="10" value="3">
+          <span class="width-value" id="pencilValue">3</span>
+        </div>
+        <button class="tool-btn" id="eraserBtn" title="지우개">⬜</button>
+        <div class="width-group">
+          <span class="width-label">지우개</span>
+          <input type="range" class="width-slider" id="eraserSlider" min="10" max="50" value="20">
+          <span class="width-value" id="eraserValue">20</span>
+        </div>
+        <input type="color" class="color-picker" id="colorPicker" value="#000000" title="색상 선택">
+        <button class="reset-btn" onclick="clearCanvas()">초기화</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 정답 입력 -->
+  <section class="section">
+    <h2 class="section-title">알맞은 답을 입력하세요.</h2>
+    <div class="answer-row">
+      <div class="answer-group">
+        <label class="answer-label">몫</label>
+        <input type="number" class="answer-input" id="quotientInput" placeholder="?">
+      </div>
+      <div class="answer-group">
+        <label class="answer-label">나머지</label>
+        <input type="number" class="answer-input" id="remainderInput" placeholder="?">
+      </div>
+      <button class="check-btn" id="checkBtn">정답 확인</button>
+    </div>
+  </section>
+
+  <!-- AI 피드백 -->
+  <section class="section">
+    <div class="feedback-box" id="feedbackBox">
+      <p class="feedback-title">AI 피드백</p>
+      <p class="feedback-content" id="feedbackContent">문제를 풀고 정답을 확인해 보세요!</p>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="./src/page2.js"></script>
+
+</body>
+</html>
+
