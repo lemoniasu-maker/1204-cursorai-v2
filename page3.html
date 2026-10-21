@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>나눗셈 실생활 문제 만들기 - 나눗셈 탐험대</title>
+  <title>문제 만들고 나누기 - 나눗셈 탐험대</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="stylesheet" href="/fonts/stylesheet.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +32,7 @@
       font-family: 'HakgyoansimBoadmarker', 'Jua', sans-serif;
       font-size: 18px;
       min-height: 100vh;
-      background-image: url('./image/Gemini_Generated_Image_r5nlnur5nlnur5nl.png');
+      background-image: url('./image/bg-page3.webp');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -41,7 +41,7 @@
     }
 
     .container {
-      max-width: 900px;
+      max-width: 1200px;
       margin: 0 auto;
       background: rgba(255, 255, 255, 0.85);
       border-radius: 24px;
@@ -166,339 +166,168 @@
       text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
     }
 
-    /* ===== API 상태 배너 ===== */
+    /* ===== 상태 줄 ===== */
     .status-bar {
       padding: 0.5rem 1rem;
       font-size: 0.85rem;
-      font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-    }
-
-    .status-bar.connected {
-      background: rgba(180, 248, 200, 0.5);
-      color: #059669;
-    }
-
-    .status-bar.disconnected {
-      background: rgba(255, 179, 198, 0.5);
-      color: #dc2626;
-    }
-
-    /* ===== 섹션 공통 ===== */
-    .section {
-      padding: 1.5rem;
-      border-bottom: 2px dashed rgba(163, 199, 255, 0.5);
-    }
-
-    .section:last-child {
-      border-bottom: none;
-    }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      margin-bottom: 1rem;
-    }
-
-    .section-title::before {
-      content: '•';
-      color: var(--pastel-blue);
-      font-size: 1.5rem;
-    }
-
-    /* ===== 문제 작성 영역 ===== */
-    .problem-textarea {
-      width: 100%;
-      min-height: 180px;
-      padding: 1rem;
-      border: 2px solid rgba(163, 199, 255, 0.6);
-      border-radius: 16px;
-      font-size: 1rem;
-      font-family: inherit;
-      resize: vertical;
-      outline: none;
-      transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.2);
-    }
-
-    .problem-textarea:focus {
-      border-color: var(--pastel-blue);
-      box-shadow: 0 0 0 3px rgba(163, 199, 255, 0.3);
-    }
-
-    .problem-textarea::placeholder {
-      color: var(--text-light);
-    }
-
-    .button-group {
-      display: flex;
-      justify-content: flex-end;
       gap: 0.75rem;
-      margin-top: 1rem;
+      flex-wrap: wrap;
+      background: rgba(163, 199, 255, 0.18);
+      color: var(--text-medium);
+    }
+    .status-bar b { color: var(--text-dark); }
+    .link-btn {
+      background: none; border: none; font: inherit; color: #2563eb;
+      text-decoration: underline; cursor: pointer; padding: 0.25rem;
     }
 
+    .section { padding: 1.25rem 1.5rem; }
+    .section-title { font-size: 1.3rem; color: var(--text-dark); margin-bottom: 0.75rem; }
+    .muted { color: var(--text-light); font-size: 0.95rem; }
+    .hidden { display: none !important; }
+
+    /* ===== 공통 입력·버튼 ===== */
+    input[type=text], input[type=number], input[type=date], input[type=password], select, textarea {
+      font-family: inherit; font-size: 1.05rem; color: var(--text-dark);
+      border: 3px solid var(--pastel-blue); border-radius: 14px;
+      padding: 0.6rem 0.8rem; background: white; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #7ab3ff; box-shadow: 0 0 0 4px rgba(163,199,255,0.35); }
+    textarea { width: 100%; min-height: 110px; resize: vertical; line-height: 1.6; }
     .btn {
-      padding: 0.625rem 1.25rem;
-      border: none;
-      border-radius: 20px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
+      font-family: inherit; font-size: 1.05rem; border: none; border-radius: 14px;
+      padding: 0.65rem 1.2rem; cursor: pointer; font-weight: 700;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.12); transition: transform 0.1s;
+      touch-action: manipulation;
     }
+    .btn:active { transform: translateY(2px); box-shadow: none; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: #4f9cff; color: white; }
+    .btn-green { background: #34c38f; color: white; }
+    .btn-soft { background: rgba(163,199,255,0.35); color: var(--text-dark); }
+    .btn-pink { background: var(--pastel-pink); color: #9d174d; }
+    .btn-small { font-size: 0.9rem; padding: 0.4rem 0.75rem; border-radius: 10px; }
 
-    .btn-secondary {
-      background: var(--pastel-blue);
-      color: var(--text-dark);
+    /* ===== 시작 화면 ===== */
+    .entry-number { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .entry-number input { width: 110px; text-align: center; font-size: 1.4rem; }
+    .board-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.9rem; }
+    .board-tile {
+      text-align: left; font-family: inherit; cursor: pointer;
+      background: white; border: 3px solid var(--pastel-blue); border-radius: 18px;
+      padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.35rem;
+      transition: transform 0.15s, box-shadow 0.15s; touch-action: manipulation;
     }
+    .board-tile:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(122,179,255,0.35); }
+    .board-tile .lesson { font-size: 0.85rem; color: #2563eb; }
+    .board-tile .title { font-size: 1.15rem; color: var(--text-dark); }
+    .board-tile .date { font-size: 0.85rem; color: var(--text-light); }
+    .board-tile.today { border-color: #34c38f; background: #f0fdf6; }
+    .board-tile.locked { border-color: #cbd5e1; background: #f8fafc; }
+    .list-heading { font-size: 1.05rem; color: var(--text-medium); margin: 1.1rem 0 0.6rem; }
 
-    .btn-secondary:hover {
-      background: #7ab3ff;
-      transform: scale(1.05);
+    /* ===== 선생님 영역 ===== */
+    .teacher-box { background: #fffbeb; border: 3px dashed var(--pastel-yellow); border-radius: 18px; padding: 1rem 1.2rem; margin-top: 1.25rem; }
+    .teacher-row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-top: 0.6rem; }
+    .teacher-boards { margin-top: 0.9rem; display: flex; flex-direction: column; gap: 0.45rem; }
+    .teacher-board-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; background: white; border-radius: 12px; padding: 0.5rem 0.75rem; }
+    .teacher-board-row span { flex: 1; min-width: 180px; }
+
+    /* ===== 게시판 상단 ===== */
+    .board-top { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 1rem 1.5rem; background: rgba(255,255,255,0.7); border-bottom: 2px dashed rgba(163,199,255,0.5); }
+    .board-top h2 { font-size: 1.35rem; color: var(--text-dark); flex: 1; min-width: 200px; }
+    .board-top .sub { display: block; font-size: 0.85rem; color: var(--text-light); }
+    .lock-banner { background: #f1f5f9; color: var(--text-medium); text-align: center; padding: 0.6rem; font-size: 0.95rem; }
+
+    /* ===== 문제 설계 도우미 ===== */
+    .maker { margin: 1rem 1.5rem; background: white; border: 4px solid var(--pastel-purple); border-radius: 22px; padding: 1.1rem 1.25rem; }
+    .maker-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+    .maker-head h3 { font-size: 1.25rem; color: #7c3aed; }
+    .rule-tip { background: #f5f3ff; border-radius: 14px; padding: 0.6rem 0.85rem; font-size: 0.95rem; color: #5b21b6; margin-bottom: 0.9rem; line-height: 1.5; }
+    .step { border-top: 2px dashed #e9d5ff; padding: 0.85rem 0 0.5rem; }
+    .step:first-of-type { border-top: none; }
+    .step-label { font-size: 1.1rem; color: var(--text-dark); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .step-num { background: #a78bfa; color: white; border-radius: 50%; width: 1.7rem; height: 1.7rem; display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; }
+    .step-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .step-row input[type=number] { width: 110px; text-align: center; font-size: 1.2rem; }
+    .chips { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .chip { font-family: inherit; font-size: 0.95rem; border: 2px solid #ddd6fe; background: #faf5ff; color: #6d28d9; border-radius: 999px; padding: 0.3rem 0.75rem; cursor: pointer; touch-action: manipulation; }
+    .chip.on { background: #a78bfa; color: white; border-color: #a78bfa; }
+    .mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .mode-card { font-family: inherit; text-align: left; cursor: pointer; background: #faf5ff; border: 3px solid #ddd6fe; border-radius: 18px; padding: 0.8rem 0.9rem; touch-action: manipulation; }
+    .mode-card.on { border-color: #8b5cf6; background: #ede9fe; box-shadow: 0 0 0 4px rgba(167,139,250,0.3); }
+    .mode-card b { display: block; font-size: 1.1rem; color: var(--text-dark); margin-bottom: 0.25rem; }
+    .mode-card small { font-size: 0.88rem; color: var(--text-medium); line-height: 1.4; display: block; }
+    .help-btn { font-family: inherit; font-size: 0.85rem; border: 2px solid #fde68a; background: #fffbeb; color: #92400e; border-radius: 999px; padding: 0.15rem 0.65rem; cursor: pointer; margin-left: auto; touch-action: manipulation; }
+    .help-btn.on { background: #fde68a; }
+    .help-box { background: #fffbeb; border: 2px dashed #fcd34d; border-radius: 14px; padding: 0.6rem 0.85rem; margin-bottom: 0.6rem; font-size: 0.97rem; line-height: 1.7; color: #78350f; }
+    .blank { display: inline-block; min-width: 3.2em; border-bottom: 2px solid #b45309; text-align: center; color: #b45309; font-size: 0.85em; padding: 0 0.2em; margin: 0 0.1em; }
+    .check-box { margin-top: 0.75rem; border-radius: 14px; padding: 0.65rem 0.9rem; font-size: 1rem; line-height: 1.5; }
+    .check-box.ok { background: #ecfdf5; color: #047857; border: 2px solid #a7f3d0; }
+    .check-box.bad { background: #fff1f2; color: #be123c; border: 2px solid #fecdd3; }
+    .ai-suggest { margin-top: 0.6rem; background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 14px; padding: 0.7rem 0.9rem; line-height: 1.6; }
+    .maker-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.75rem; align-items: center; }
+    .msg { font-size: 0.95rem; }
+    .msg.error { color: #be123c; }
+
+    /* ===== 문제 카드 (패들렛처럼) ===== */
+    .cards { padding: 1rem 1.5rem 1.5rem; columns: 3 300px; column-gap: 1rem; }
+    .card {
+      break-inside: avoid; margin-bottom: 1rem; background: white; border-radius: 20px;
+      border: 3px solid var(--pastel-blue); padding: 0.9rem 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      display: flex; flex-direction: column; gap: 0.6rem;
     }
+    .card.mine { border-color: #fbbf24; background: #fffdf5; }
+    .card.new { animation: pop 0.5s ease; }
+    @keyframes pop { from { transform: scale(0.94); opacity: 0.3; } to { transform: scale(1); opacity: 1; } }
+    .card-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .who { font-size: 1.05rem; color: var(--text-dark); }
+    .tag { font-size: 0.78rem; border-radius: 999px; padding: 0.15rem 0.55rem; }
+    .tag.share { background: #fce7f3; color: #9d174d; }
+    .tag.group { background: #dbeafe; color: #1e40af; }
+    .tag.me { background: #fef3c7; color: #92400e; }
+    .card-question { font-size: 1.1rem; line-height: 1.65; color: var(--text-dark); word-break: keep-all; overflow-wrap: anywhere; }
+    .answer-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; background: #f8fafc; border-radius: 14px; padding: 0.5rem 0.6rem; }
+    .answer-row input { width: 72px; text-align: center; padding: 0.4rem; font-size: 1.05rem; }
+    .result { font-size: 0.98rem; }
+    .result.ok { color: #047857; }
+    .result.bad { color: #be123c; }
+    .my-answer { background: #fef3c7; border-radius: 12px; padding: 0.45rem 0.7rem; font-size: 0.95rem; color: #92400e; }
+    .solve-stat { font-size: 0.88rem; color: var(--text-light); }
+    .comments { display: flex; flex-direction: column; gap: 0.3rem; }
+    .comment { background: #f1f5f9; border-radius: 12px; padding: 0.35rem 0.6rem; font-size: 0.95rem; color: var(--text-medium); display: flex; gap: 0.4rem; align-items: flex-start; word-break: keep-all; overflow-wrap: anywhere; }
+    .comment b { color: var(--text-dark); white-space: nowrap; }
+    .comment .del { margin-left: auto; }
+    .comment-row { display: flex; gap: 0.4rem; }
+    .comment-row input { flex: 1; min-width: 0; padding: 0.4rem 0.6rem; font-size: 0.95rem; }
+    .empty { column-span: all; text-align: center; padding: 2.5rem 1rem; color: var(--text-light); font-size: 1.05rem; }
+    .del { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0.1rem 0.3rem; }
 
-    .btn-primary {
-      background: #3b82f6;
-      color: white;
-    }
+    /* 크게 보기 (동기유발·발표용) */
+    body.present .cards { columns: 2 420px; }
+    body.present .card-question { font-size: 1.5rem; }
+    body.present .answer-row, body.present .comment-row, body.present .maker, body.present #makeBtn,
+    body.present .my-answer, body.present .del, body.present .result { display: none !important; }
 
-    .btn-primary:hover {
-      background: #2563eb;
-      transform: scale(1.05);
-    }
-
-    /* ===== AI 튜터 버튼 ===== */
-    .ai-tutor-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: var(--pastel-blue);
-      border: 2px solid #7ab3ff;
-      border-radius: 20px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      margin-bottom: 1rem;
-    }
-
-    /* ===== 채팅 영역 ===== */
-    .chat-container {
-      background: white;
-      border: 2px solid rgba(163, 199, 255, 0.6);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(163, 199, 255, 0.2);
-    }
-
-    .chat-log {
-      height: 350px;
-      overflow-y: auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .chat-message {
-      max-width: 85%;
-      padding: 0.75rem 1rem;
-      border-radius: 16px;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .chat-message.user {
-      align-self: flex-end;
-      background: var(--pastel-blue);
-      color: var(--text-dark);
-      border-bottom-right-radius: 4px;
-    }
-
-    .chat-message.ai {
-      align-self: flex-start;
-      background: #f1f5f9;
-      color: var(--text-dark);
-      border-bottom-left-radius: 4px;
-    }
-
-    .chat-message.loading {
-      background: #f1f5f9;
-      color: var(--text-medium);
-    }
-
-    .typing-indicator {
-      display: flex;
-      gap: 4px;
-      padding: 4px 0;
-    }
-
-    .typing-indicator span {
-      width: 8px;
-      height: 8px;
-      background: var(--text-light);
-      border-radius: 50%;
-      animation: bounce 1.4s infinite ease-in-out;
-    }
-
-    .typing-indicator span:nth-child(1) { animation-delay: 0s; }
-    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes bounce {
-      0%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-6px); }
-    }
-
-    .chat-input-area {
-      display: flex;
-      gap: 0.75rem;
-      padding: 1rem;
-      border-top: 2px dashed rgba(163, 199, 255, 0.5);
-      background: rgba(248, 250, 252, 0.8);
-    }
-
-    .paste-btn {
-      padding: 0.75rem 1rem;
-      background: var(--pastel-yellow);
-      border: 2px solid #ffd966;
-      border-radius: 24px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-
-    .paste-btn:hover {
-      background: #ffd966;
-      transform: scale(1.05);
-    }
-
-    .chat-input {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border: 2px solid rgba(163, 199, 255, 0.6);
-      border-radius: 24px;
-      font-size: 0.95rem;
-      outline: none;
-      transition: all 0.2s;
-    }
-
-    .chat-input:focus {
-      border-color: var(--pastel-blue);
-      box-shadow: 0 0 0 3px rgba(163, 199, 255, 0.3);
-    }
-
-    .send-btn {
-      padding: 0.75rem 1.25rem;
-      background: var(--pastel-blue);
-      border: none;
-      border-radius: 24px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .send-btn:hover {
-      background: #7ab3ff;
-      transform: scale(1.05);
-    }
-
-    .send-btn:disabled {
-      background: #e2e8f0;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* ===== 환영 메시지 ===== */
-    .welcome-message {
-      text-align: center;
-      color: var(--text-light);
-      padding: 2rem;
-    }
-
-    .welcome-message .emoji {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .welcome-message p {
-      margin-bottom: 0.75rem;
-    }
-
-    .welcome-message .instruction {
-      font-size: 0.85rem;
-      color: var(--text-medium);
-      background: rgba(163, 199, 255, 0.2);
-      padding: 0.5rem 1rem;
-      border-radius: 12px;
-      margin-top: 1rem;
-      border: 1px solid rgba(163, 199, 255, 0.4);
-    }
-
-    .welcome-message .instruction strong {
-      color: var(--pastel-blue);
-      font-weight: 700;
-    }
-
-    /* ===== 반응형 ===== */
-    @media (max-width: 480px) {
-      .header h1 {
-        font-size: 1.4rem;
-      }
-      
-      .section {
-        padding: 1rem;
-      }
-      
-      .chat-log {
-        height: 280px;
-      }
-      
-      .button-group {
-        flex-direction: column;
-      }
-      
-      .btn {
-        width: 100%;
-      }
-
-      .chat-input-area {
-        flex-wrap: wrap;
-      }
-
-      .paste-btn {
-        font-size: 0.85rem;
-        padding: 0.625rem 0.875rem;
-      }
+    @media (max-width: 600px) {
+      body { padding: 0.5rem; font-size: 17px; }
+      .section, .board-top { padding: 1rem; }
+      .maker { margin: 0.75rem; padding: 0.9rem; }
+      .mode-cards { grid-template-columns: 1fr; }
+      .cards { padding: 0.75rem; columns: 1; }
     }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- 네비게이션 바 -->
   <nav class="navbar">
     <a href="index.html" class="nav-home">
       <span class="nav-home-icon">🏠</span>
-      <img src="./image/head.png" alt="나눗셈 탐험대" class="nav-logo">
+      <img src="./image/head.webp" alt="나눗셈 탐험대" class="nav-logo">
     </a>
     <div class="nav-links">
       <a href="page1.html" class="nav-link">1단계: 수모형 탐구</a>
@@ -507,89 +336,130 @@
     </div>
   </nav>
 
-  <!-- 헤더 -->
   <header class="header">
-    <h1>나눗셈 실생활 문제 만들기</h1>
+    <h1>문제 만들고 친구와 나누기</h1>
   </header>
 
-  <!-- API 상태 배너 -->
   <div class="status-bar" id="statusBar">
-    <span>🔄 API 연결 확인 중...</span>
+    <span id="meLabel">번호를 먼저 써 주세요</span>
+    <button class="link-btn hidden" id="changeNumberBtn" type="button">번호 바꾸기</button>
+    <span id="teacherLabel" class="hidden">👩‍🏫 선생님 모드</span>
   </div>
 
-  <!-- 이름 입력 영역 -->
-  <section class="section">
-    <h2 class="section-title">이름을 입력하세요.</h2>
-    <input 
-      type="text" 
-      class="problem-textarea" 
-      id="nameInput" 
-      placeholder="이름을 입력해주세요"
-      style="min-height: 60px; padding: 1rem;"
-    />
-  </section>
+  <!-- ===== 시작 화면: 번호 + 게시판 고르기 ===== -->
+  <section class="section" id="entryView">
+    <h2 class="section-title">① 내 번호를 써 주세요</h2>
+    <div class="entry-number">
+      <input type="number" id="numberInput" min="1" max="40" inputmode="numeric" placeholder="번호">
+      <span class="muted">번</span>
+      <button class="btn btn-primary" id="numberSaveBtn" type="button">확인</button>
+      <span class="msg" id="numberMsg"></span>
+    </div>
 
-  <!-- 문제 작성 영역 -->
-  <section class="section">
-    <h2 class="section-title">나만의 나눗셈 실생활 문제를 만들어 봅시다.</h2>
-    <textarea 
-      class="problem-textarea" 
-      id="problemTextarea" 
-      placeholder="예시: 사탕 24개를 3명의 친구에게 똑같이 나누어 주려고 합니다. 한 명에게 몇 개씩 줄 수 있을까요?&#10;&#10;나만의 창의적인 나눗셈 문제를 만들어 보세요!"
-    ></textarea>
-    <div class="button-group">
-      <button class="btn btn-secondary" id="copyBtn">복사</button>
+    <h2 class="section-title">② 게시판을 골라요</h2>
+    <div id="boardListArea"><p class="muted">게시판을 불러오는 중이에요...</p></div>
+
+    <!-- 선생님 -->
+    <p style="margin-top: 1.5rem; text-align: right;"><button class="link-btn" id="teacherToggleBtn" type="button">👩‍🏫 선생님</button></p>
+    <div class="teacher-box hidden" id="teacherLoginBox">
+      <div class="teacher-row">
+        <span>👩‍🏫 선생님</span>
+        <input type="password" id="teacherPwInput" placeholder="선생님 비밀번호" autocomplete="current-password">
+        <button class="btn btn-soft btn-small" id="teacherLoginBtn" type="button">들어가기</button>
+        <span class="msg" id="teacherMsg"></span>
+      </div>
+    </div>
+    <div class="teacher-box hidden" id="teacherBox">
+      <div class="teacher-row">
+        <b>새 게시판 열기</b>
+        <select id="levelSelect"></select>
+        <input type="date" id="dateInput">
+        <input type="text" id="titleInput" placeholder="제목 (비우면 차시 이름)" maxlength="40">
+        <button class="btn btn-green btn-small" id="createBoardBtn" type="button">게시판 열기</button>
+        <button class="link-btn" id="teacherLogoutBtn" type="button">선생님 모드 끄기</button>
+      </div>
+      <div class="teacher-boards" id="teacherBoards"></div>
     </div>
   </section>
 
-  <!-- AI 튜터 채팅 영역 -->
-  <section class="section">
-    <div class="ai-tutor-btn">
-      <span>🤖</span>
-      <span>AI 선생님께 조언 받기</span>
+  <!-- ===== 게시판 화면 ===== -->
+  <section id="boardView" class="hidden">
+    <div class="board-top">
+      <button class="btn btn-soft btn-small" id="backBtn" type="button">← 게시판 목록</button>
+      <h2 id="boardTitle"><span class="sub" id="boardSub"></span></h2>
+      <button class="btn btn-primary" id="makeBtn" type="button">✏️ 문제 만들기</button>
+      <button class="btn btn-soft btn-small hidden" id="presentBtn" type="button">🖥️ 크게 보기</button>
+      <button class="btn btn-soft btn-small hidden" id="lockBtn" type="button">🔒 잠그기</button>
     </div>
-    
-    <div class="chat-container">
-      <div class="chat-log" id="chatLog">
-        <div class="welcome-message">
-          <div class="emoji">👨‍🏫</div>
-          <p>안녕하세요! AI 선생님이에요.<br>제출하기 전 AI 선생님의 피드백을 받고 문제를 수정하여 제출하세요!</p>
-          <div class="instruction">
-            💡 <strong>팁:</strong> 아래 채팅창에 <strong>붙여넣기 버튼</strong>을 클릭하여 "이 문제가 괜찮을까요?"라고 물어보세요!
-          </div>
+    <div class="lock-banner hidden" id="lockBanner">🔒 이 게시판은 잠겨 있어요. 문제를 보고 함께 생각해 봐요.</div>
+
+    <!-- 문제 설계 도우미 -->
+    <div class="maker hidden" id="maker">
+      <div class="maker-head">
+        <h3>🧩 문제 설계 도우미</h3>
+        <button class="btn btn-soft btn-small" id="closeMakerBtn" type="button">닫기</button>
+      </div>
+      <p class="muted" style="margin-bottom: 0.4rem;">스스로 생각해서 써 보고, 막히면 <b>💡 도움 받기</b>를 눌러요.</p>
+
+      <div class="step">
+        <div class="step-label"><span class="step-num">1</span>무엇을 나눌까요? <button class="help-btn" data-help="help1" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help1"></div>
+        <div class="step-row">
+          <input type="text" id="itemInput" maxlength="12" placeholder="나눌 물건" style="width: 200px;">
         </div>
       </div>
-      <div class="chat-input-area">
-        <button class="paste-btn" id="pasteBtn" title="위에서 작성한 문제를 붙여넣기">📋 붙여넣기</button>
-        <input 
-          type="text" 
-          class="chat-input" 
-          id="chatInput" 
-          placeholder="AI 선생님께 질문하기..."
-        />
-        <button class="send-btn" id="sendBtn">전송</button>
+
+      <div class="step">
+        <div class="step-label"><span class="step-num">2</span>전체는 몇 개인가요? <button class="help-btn" data-help="help2" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help2"></div>
+        <div class="step-row">
+          <input type="number" id="totalInput" inputmode="numeric" placeholder="수">
+          <input type="text" id="unitInput" maxlength="4" placeholder="세는 말" style="width: 110px;">
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-label"><span class="step-num">3</span>어떤 상황인가요? <button class="help-btn" data-help="help3" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help3"></div>
+        <div class="mode-cards">
+          <button class="mode-card" data-mode="share" type="button"><b>🎁 똑같이 나누어 주기</b></button>
+          <button class="mode-card" data-mode="group" type="button"><b>📦 몇 개씩 묶어 담기</b></button>
+        </div>
+      </div>
+
+      <div class="step hidden" id="step4">
+        <div class="step-label"><span class="step-num">4</span>어떻게 나누어 줄까요? <button class="help-btn" data-help="help4" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help4"></div>
+        <div class="step-row">
+          <span id="step4Before"></span>
+          <input type="number" id="divisorInput" inputmode="numeric" placeholder="수">
+          <span id="step4Mid"></span>
+          <input type="text" id="targetInput" maxlength="8" style="width: 130px;">
+          <span id="step4After"></span>
+        </div>
+        <div class="check-box hidden" id="checkBox"></div>
+      </div>
+
+      <div class="step hidden" id="step5">
+        <div class="step-label"><span class="step-num">5</span>문장으로 완성해요 <button class="help-btn" data-help="help5" type="button">💡 도움 받기</button></div>
+        <div class="help-box hidden" id="help5"></div>
+        <textarea id="questionInput" maxlength="300" placeholder="내가 만든 문제를 문장으로 써 보세요."></textarea>
+        <div class="maker-actions">
+          <button class="btn btn-soft btn-small hidden" id="aiPolishBtn" type="button">✨ AI에게 문장 다듬기 도움 받기</button>
+        </div>
+        <div class="ai-suggest hidden" id="aiSuggest"></div>
+      </div>
+
+      <div class="maker-actions">
+        <button class="btn btn-green" id="postBtn" type="button" disabled>📌 게시판에 올리기</button>
+        <span class="msg" id="postMsg"></span>
       </div>
     </div>
-  </section>
 
-  <!-- AI 피드백 후 문제 수정 영역 (대화 후 표시) -->
-  <section class="section" id="revisedSection" style="display: none;">
-    <h2 class="section-title">AI 선생님과 대화하고 나서 나의 문제를 수정해 봅시다.</h2>
-    <textarea 
-      class="problem-textarea" 
-      id="revisedProblemTextarea" 
-      placeholder="AI 선생님의 조언을 참고하여 문제를 수정해 주세요!"
-    ></textarea>
-    <div style="text-align: center; margin-top: 1rem;">
-      <button class="btn btn-primary" id="finalSubmitBtn" style="font-size: 1.1rem; padding: 0.875rem 2rem;">
-        선생님께 제출하기 📤
-      </button>
-    </div>
+    <div class="cards" id="cards"></div>
   </section>
 </div>
 
 <script type="module" src="./src/page3.js"></script>
-
 </body>
 </html>
-

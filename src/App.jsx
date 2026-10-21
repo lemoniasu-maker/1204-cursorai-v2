@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { aiAvailable } from './aiClient.js';
 import {
   DndContext,
   useDraggable,
@@ -10,8 +11,7 @@ import {
   KeyboardSensor,
 } from '@dnd-kit/core';
 
-// API Key 가져오기 (Vite 환경변수)
-const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+// AI는 서버(/api/ai)를 거쳐 호출합니다. API 키는 Netlify 서버에만 있습니다.
 
 // 숫자 뒤에 붙는 조사(이/가, 와/과, 은/는)를 받침에 맞게 고르기
 const hasBatchim = (n) => {
@@ -57,7 +57,7 @@ const buildEstimateFeedback = (dividend, divisor, estimate, result) => {
 
 // AI 피드백 요청 함수 (판단은 코드가 하고, AI는 말투만 다듬음)
 const getAIFeedback = async (dividend, divisor, estimate, result) => {
-  if (!API_KEY || API_KEY === 'undefined' || API_KEY.trim() === '') {
+  if (!(await aiAvailable())) {
     return null;
   }
 
@@ -80,11 +80,10 @@ ${isGood
 4. 위 판단 결과와 반대되는 말을 하지 마세요.`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('/api/ai', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -175,12 +174,12 @@ const Block = ({ id, type, onClick, isHammerMode }) => {
   // 이미지 경로와 크기 설정
   const getBlockConfig = () => {
     if (type === 'hundred') {
-      return { src: '/image/hundred.png', size: 'w-14 h-14 sm:w-16 sm:h-16', label: '100' };
+      return { src: '/image/hundred.webp', size: 'w-14 h-14 sm:w-16 sm:h-16', label: '100' };
     }
     if (type === 'ten') {
-      return { src: '/image/ten.png', size: 'w-11 h-11 sm:w-12 sm:h-12', label: '10' };
+      return { src: '/image/ten.webp', size: 'w-11 h-11 sm:w-12 sm:h-12', label: '10' };
     }
-    return { src: '/image/one.png', size: 'w-8 h-8 sm:w-9 sm:h-9', label: '1' };
+    return { src: '/image/one.webp', size: 'w-8 h-8 sm:w-9 sm:h-9', label: '1' };
   };
 
   const config = getBlockConfig();
@@ -261,15 +260,15 @@ const SourceArea = ({ blocks, onBlockClick, isHammerMode }) => {
       </div>
       <div className="mt-1 flex gap-4 text-xs sm:text-sm text-slate-700">
         <div className="flex items-center gap-1">
-          <img src="/image/hundred.png" alt="백 모형" className="w-5 h-5 object-contain" />
+          <img src="/image/hundred.webp" alt="백 모형" className="w-5 h-5 object-contain" />
           <span>백 모형 (100)</span>
         </div>
         <div className="flex items-center gap-1">
-          <img src="/image/ten.png" alt="십 모형" className="w-4 h-4 object-contain" />
+          <img src="/image/ten.webp" alt="십 모형" className="w-4 h-4 object-contain" />
           <span>십 모형 (10)</span>
         </div>
         <div className="flex items-center gap-1">
-          <img src="/image/one.png" alt="일 모형" className="w-3 h-3 object-contain" />
+          <img src="/image/one.webp" alt="일 모형" className="w-3 h-3 object-contain" />
           <span>일 모형 (1)</span>
         </div>
       </div>
@@ -494,7 +493,8 @@ const App = () => {
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
 
   // API Key 연결 상태 확인
-  const hasApiKey = API_KEY && API_KEY !== 'undefined' && API_KEY.trim() !== '';
+  const [hasApiKey, setHasApiKey] = useState(false);
+  useEffect(() => { aiAvailable().then(setHasApiKey); }, []);
 
   const dividendNum = Number(equationDividend);
   const divisorNum = Number(equationDivisor);
@@ -941,7 +941,7 @@ const App = () => {
           <span className="w-10 h-10 bg-pastelBlue rounded-full flex items-center justify-center text-xl border-2 border-sky-400 shadow-md hover:scale-110 hover:bg-sky-300 transition-all">
             🏠
           </span>
-          <img src="/image/head.png" alt="나눗셈 탐험대" className="h-[50px] object-contain" />
+          <img src="/image/head.webp" alt="나눗셈 탐험대" className="h-[50px] object-contain" />
         </a>
         <div className="flex gap-2 flex-wrap">
           <a 
@@ -1056,7 +1056,7 @@ const App = () => {
                   {hasApiKey ? (
                     <span className="text-xs sm:text-sm text-emerald-600 font-medium">🟢 AI 연결됨</span>
                   ) : (
-                    <span className="text-xs sm:text-sm text-rose-500 font-medium">🔴 API Key 없음</span>
+                    <span className="text-xs sm:text-sm text-rose-500 font-medium">⚪ 기본 피드백</span>
                   )}
                 </div>
                 <div className="min-h-[64px] sm:min-h-[80px] rounded-lg bg-white/80 border border-dashed border-slate-300 flex items-center justify-center px-3 py-3 sm:px-4 sm:py-4 text-sm sm:text-base">
@@ -1070,7 +1070,7 @@ const App = () => {
                   ) : hasApiKey ? (
                     <p className="text-slate-400">어림하기 확인을 누르면 AI 선생님이 피드백을 줄 거예요!</p>
                   ) : (
-                    <p className="text-slate-400">.env 파일에 VITE_OPENAI_API_KEY를 설정하면 AI 피드백을 받을 수 있어요.</p>
+                    <p className="text-slate-400">AI가 아직 연결되지 않았어요. 어림하기 확인을 누르면 기본 피드백이 나와요.</p>
                   )}
                 </div>
               </div>

@@ -2,9 +2,10 @@
 
 // Sweetalert2 import
 import Swal from 'sweetalert2';
+import { LEVEL_RULES, pickNumbers, j } from './divisionRules.js';
+import { aiAvailable } from './aiClient.js';
 
-// API Key 가져오기 (Vite 환경변수)
-const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+// AI는 서버(/api/ai)를 거쳐 호출합니다. API 키는 Netlify 서버에만 있습니다.
 
 // ===== 전역 변수 =====
 let currentLevel = -1;         // 현재 선택된 레벨 (-1: 미선택)
@@ -14,84 +15,6 @@ let currentTool = 'pencil';    // 'pencil' | 'eraser'
 let currentColor = '#000000';
 let pencilWidth = 3;           // 펜 굵기 (기본: 보통)
 let eraserWidth = 20;          // 지우개 굵기 (기본: 보통)
-
-// ===== 차시별 숫자 규칙 =====
-// 숫자는 코드가 교과서 차시 규칙에 맞게 뽑고, AI는 이야기 문장만 만든다.
-const LEVEL_RULES = [
-  {
-    name: '(몇십)÷(몇) (1)', // 2차시: 내림 없음, 몫이 몇십 (예: 60÷3=20)
-    describe: '내림이 없는 (몇십)÷(몇), 나머지 없음',
-    test: (n, d) => n >= 10 && n <= 90 && n % 10 === 0 && (n / 10) >= d && (n / 10) % d === 0
-  },
-  {
-    name: '(몇십)÷(몇) (2)', // 3차시: 내림 있음, 나머지 0 (예: 70÷5=14)
-    describe: '내림이 있는 (몇십)÷(몇), 나머지 없음',
-    test: (n, d) => n >= 10 && n <= 90 && n % 10 === 0 && (n / 10) >= d && (n / 10) % d !== 0 && n % d === 0
-  },
-  {
-    name: '(몇십몇)÷(몇) (1)', // 4차시: 십·일의 자리 모두 나누어떨어짐 (예: 36÷3=12)
-    describe: '내림이 없는 (몇십몇)÷(몇), 나머지 없음',
-    test: (n, d) => {
-      const t = Math.floor(n / 10), o = n % 10;
-      return n >= 11 && n <= 99 && o !== 0 && t >= d && t % d === 0 && o % d === 0;
-    }
-  },
-  {
-    name: '(몇십몇)÷(몇) (2)', // 5차시: 내림 있음, 나머지 0 (예: 45÷3=15)
-    describe: '내림이 있는 (몇십몇)÷(몇), 나머지 없음',
-    test: (n, d) => {
-      const t = Math.floor(n / 10), o = n % 10;
-      return n >= 11 && n <= 99 && o !== 0 && t >= d && t % d !== 0 && n % d === 0;
-    }
-  },
-  {
-    name: '(세 자리 수)÷(한 자리 수) (1)', // 9차시: 몫이 세 자리 (백의 자리 ≥ 나누는 수), 나머지 허용
-    describe: '몫이 세 자리 수인 (세 자리 수)÷(한 자리 수), 나머지가 있을 수 있음',
-    test: (n, d) => n >= 100 && n <= 999 && Math.floor(n / 100) >= d
-  },
-  {
-    name: '(세 자리 수)÷(한 자리 수) (2)', // 10차시: 몫이 두 자리 (백의 자리 < 나누는 수), 나머지 허용
-    describe: '몫이 두 자리 수인 (세 자리 수)÷(한 자리 수), 나머지가 있을 수 있음',
-    test: (n, d) => n >= 100 && n <= 999 && Math.floor(n / 100) < d
-  }
-];
-
-// 규칙에 맞는 (나누어지는 수, 나누는 수) 쌍을 모두 모아 두고 무작위로 하나 고르기
-const VALID_PAIRS = LEVEL_RULES.map(rule => {
-  const pairs = [];
-  for (let n = 10; n <= 999; n++) {
-    for (let d = 2; d <= 9; d++) {
-      if (rule.test(n, d)) pairs.push([n, d]);
-    }
-  }
-  return pairs;
-});
-
-function pickNumbers(levelIndex) {
-  const pairs = VALID_PAIRS[levelIndex];
-  const [dividend, divisor] = pairs[Math.floor(Math.random() * pairs.length)];
-  return {
-    dividend,
-    divisor,
-    quotient: Math.floor(dividend / divisor),
-    remainder: dividend % divisor
-  };
-}
-
-// ===== 받침에 맞는 조사 고르기 =====
-function endsWithBatchim(text) {
-  const str = String(text);
-  const last = str[str.length - 1];
-  if (/[0-9]/.test(last)) {
-    const n = Number(str.replace(/[^0-9]/g, ''));
-    if (n % 10 === 0) return true; // 십, 백
-    return [1, 3, 6, 7, 8].includes(n % 10); // 일, 삼, 육, 칠, 팔
-  }
-  const code = last.charCodeAt(0) - 0xac00;
-  if (code < 0 || code > 11171) return false;
-  return code % 28 !== 0;
-}
-const j = (text, withBatchim, withoutBatchim) => `${text}${endsWithBatchim(text) ? withBatchim : withoutBatchim}`;
 
 // ===== AI 없이 쓰는 문장 틀 =====
 const ITEMS = [
@@ -139,20 +62,20 @@ function makeProblem(nums, question) {
 
 // ===== 초기화 =====
 function init() {
-  checkApiKey();
+  checkAiStatus();
   setupEventListeners();
   setupCanvas();
 }
 
-// ===== API Key 확인 =====
-function checkApiKey() {
+// ===== AI 연결 확인 =====
+async function checkAiStatus() {
   const statusBar = document.getElementById('statusBar');
-  if (API_KEY && API_KEY !== 'undefined' && API_KEY.trim() !== '') {
+  if (await aiAvailable()) {
     statusBar.className = 'status-bar connected';
     statusBar.innerHTML = '<span>🟢</span> AI 선생님과 연결되었습니다';
   } else {
     statusBar.className = 'status-bar disconnected';
-    statusBar.innerHTML = '<span>🔴</span> API Key를 찾을 수 없습니다 (.env 파일에 VITE_OPENAI_API_KEY 설정 필요)';
+    statusBar.innerHTML = '<span>🔴</span> AI가 아직 연결되지 않았어요 (문제는 기본 방식으로 만들어져요)';
   }
 }
 
@@ -245,7 +168,7 @@ window.generateNewProblem = async function() {
   showLoading(true);
 
   try {
-    if (API_KEY && API_KEY !== 'undefined' && API_KEY.trim() !== '') {
+    if (await aiAvailable()) {
       currentProblem = await generateProblemAI(currentLevel);
     } else {
       console.log('API 키가 설정되지 않아 기본 문제를 사용합니다.');
@@ -282,11 +205,10 @@ async function generateProblemAI(levelIndex) {
 JSON으로만 답하세요: {"question": "문제 문장"}`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('/api/ai', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -368,7 +290,7 @@ function resetUI() {
 
 // ===== AI 오류 분석 피드백 함수 =====
 async function getAIErrorFeedback(problem, userQuotient, userRemainder) {
-  if (!API_KEY || API_KEY === 'undefined' || API_KEY.trim() === '') {
+  if (!(await aiAvailable())) {
     return null;
   }
 
@@ -412,11 +334,10 @@ async function getAIErrorFeedback(problem, userQuotient, userRemainder) {
 - "나머지는 3이 나와야 해요." ❌`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('/api/ai', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
