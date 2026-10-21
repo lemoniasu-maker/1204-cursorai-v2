@@ -1,0 +1,8 @@
+# Netlify 설정 (사이트 화면의 빌드 설정과 같은 값)
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
