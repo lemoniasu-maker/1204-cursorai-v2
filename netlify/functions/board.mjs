@@ -150,7 +150,7 @@ export default async (req, context) => {
     // ----- 선생님 기능 -----
     if (action === 'teacherCheck') {
       if (!process.env.TEACHER_PASSWORD) return json({ ok: false, error: 'Netlify에 TEACHER_PASSWORD가 아직 설정되지 않았어요.' }, 503);
-      return json({ ok: teacher }, teacher ? 200 : 401);
+      return teacher ? json({ ok: true }) : json({ ok: false, error: '선생님 비밀번호가 맞지 않아요.' }, 401);
     }
 
     if (['createBoard', 'setLock', 'renameBoard', 'deletePost', 'deleteComment'].includes(action)) {
