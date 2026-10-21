@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  MouseSensor,
+  TouchSensor,
+  KeyboardSensor,
+} from '@dnd-kit/core';
 
 // API Key 가져오기 (Vite 환경변수)
 const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
@@ -130,6 +139,10 @@ const Block = ({ id, type, onClick, isHammerMode }) => {
 
   const style = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    // 터치 기기(크롬북 터치스크린, 휴대폰, 태블릿)에서 블록을 끌 때 화면 스크롤 대신 드래그로 처리
+    touchAction: isHammerMode ? 'manipulation' : 'none',
+    WebkitUserSelect: 'none',
+    WebkitTouchCallout: 'none',
   };
 
   // 이미지 경로와 크기 설정
@@ -156,7 +169,7 @@ const Block = ({ id, type, onClick, isHammerMode }) => {
       {...(isHammerMode ? {} : listeners)}
       {...attributes}
       onClick={handleClick}
-      className={`relative transition-transform select-none ${config.size} ${
+      className={`relative select-none ${isDragging ? '' : 'transition-transform'} ${config.size} ${
         isDragging ? 'scale-110 ring-4 ring-offset-2 ring-sky-400 z-10 drop-shadow-lg' : 'drop-shadow-md'
       }`}
     >
@@ -699,6 +712,14 @@ const App = () => {
   const canShowStep2 = hasEquation;
   const canShowStep3 = hasEquation && estimateSubmitted;
   const isHammerMode = toolMode === 'hammer';
+
+  // 드래그 감지 설정: 마우스·터치를 따로 인식하고, 조금 움직여야 드래그가 시작되게 함
+  // (살짝 누르는 동작은 클릭으로 남겨 두어 망치 모드 등과 충돌하지 않도록)
+  const dndSensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
   
   const divisionSteps = useMemo(
     () => computeLongDivisionSteps(problem.dividend, problem.divisor),
@@ -1052,7 +1073,7 @@ const App = () => {
 
               {canShowStep3 ? (
                 <>
-                  <DndContext onDragEnd={handleDragEnd}>
+                  <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
                     <ToolBar />
                     <ManipulativeArea />
 
@@ -1135,7 +1156,7 @@ const App = () => {
               <div className="flex flex-col lg:flex-row gap-4">
                 {/* 왼쪽: 수모형 조작 영역 */}
                 <div className="flex-1 rounded-2xl border-2 border-pastelPink bg-white/90 px-4 py-3 sm:px-5 sm:py-4 flex flex-col gap-3">
-                  <DndContext onDragEnd={handleDragEnd}>
+                  <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
                     <ToolBar />
                     <ManipulativeArea />
                   </DndContext>
