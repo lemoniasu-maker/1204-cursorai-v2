@@ -13,44 +13,71 @@ import {
 // API Key 가져오기 (Vite 환경변수)
 const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
-// AI 피드백 요청 함수
-const getAIFeedback = async (dividend, divisor, estimate, actualQuotient) => {
+// 숫자 뒤에 붙는 조사(이/가, 와/과, 은/는)를 받침에 맞게 고르기
+const hasBatchim = (n) => {
+  const last = Math.abs(n) % 10;
+  if (last === 0) return true; // 십, 백, 천 등은 받침이 있음
+  return [1, 3, 6, 7, 8].includes(last); // 일, 삼, 육, 칠, 팔
+};
+const josa = (n, withBatchim, withoutBatchim) => `${n}${hasBatchim(n) ? withBatchim : withoutBatchim}`;
+
+// 어림한 값이 잘 맞는지 코드로 판단하기
+// - 몫이 두 자리 이상: 실제 몫(나머지 포함 소수)과의 차이가 10보다 작으면 잘한 어림
+//   예) 95 ÷ 2 = 47.5 → 40, 50 모두 잘한 어림 / 30, 60은 아쉬운 어림
+// - 몫이 한 자리: 정답과의 차이가 2 이하이면 잘한 어림(기존 기준 유지)
+const evaluateEstimate = (dividend, divisor, estimate) => {
+  const exactQuotient = dividend / divisor;
+  const quotient = Math.floor(exactQuotient);
+  const product = estimate * divisor;
+  const isGood = quotient < 10
+    ? Math.abs(estimate - quotient) <= 2
+    : Math.abs(estimate - exactQuotient) < 10;
+  const direction = product > dividend ? 'bigger' : product < dividend ? 'smaller' : 'same';
+  return { isGood, product, direction };
+};
+
+// AI 없이도 보여 줄 기본 피드백 문장
+const buildEstimateFeedback = (dividend, divisor, estimate, result) => {
+  const { isGood, product, direction } = result;
+  const calc = `${estimate} × ${divisor} = ${product}`;
+  if (isGood) {
+    if (direction === 'bigger') {
+      return `몇십으로 잘 어림했어요! ${calc}${hasBatchim(product) ? '이니까' : '니까'} 몫은 ${josa(estimate, '보다', '보다')} 조금 작겠네요. 👍`;
+    }
+    if (direction === 'smaller') {
+      return `몇십으로 잘 어림했어요! ${calc}${hasBatchim(product) ? '이니까' : '니까'} 몫은 ${josa(estimate, '보다', '보다')} 조금 크겠네요. 👍`;
+    }
+    return `정말 잘 어림했어요! ${calc}, ${josa(dividend, '과', '와')} 똑같아요. 👍`;
+  }
+  if (direction === 'bigger') {
+    return `아쉽네요. ${calc}, ${josa(dividend, '보다', '보다')} 너무 커요. ${josa(estimate, '보다', '보다')} 작은 몇십으로 다시 생각해 볼까요? 😊`;
+  }
+  return `아쉽네요. ${calc}, ${josa(dividend, '보다', '보다')} 너무 작아요. ${josa(estimate, '보다', '보다')} 큰 몇십으로 다시 생각해 볼까요? 😊`;
+};
+
+// AI 피드백 요청 함수 (판단은 코드가 하고, AI는 말투만 다듬음)
+const getAIFeedback = async (dividend, divisor, estimate, result) => {
   if (!API_KEY || API_KEY === 'undefined' || API_KEY.trim() === '') {
     return null;
   }
 
-  const estimateProduct = estimate * divisor;
-  const isOneDigitAnswer = actualQuotient < 10;
+  const { isGood, product, direction } = result;
+  const compareText = direction === 'bigger' ? '보다 큽니다' : direction === 'smaller' ? '보다 작습니다' : '와 같습니다';
 
-  const prompt = `학생이 ${dividend} ÷ ${divisor} 문제를 풀고 있습니다.
-학생이 어림한 값은 ${estimate}입니다.
-정답은 ${actualQuotient}입니다.
+  const prompt = `학생이 ${dividend} ÷ ${divisor}의 몫을 어림했습니다.
+학생이 어림한 값: ${estimate}
+어림한 값 × 나누는 수: ${estimate} × ${divisor} = ${product} (나누어지는 수 ${dividend}${compareText})
 
-학생이 어림한 ${estimate}에 나누는 수 ${divisor}를 곱하면 ${estimateProduct}가 됩니다.
-이것을 나누어지는 수 ${dividend}와 비교해서 피드백을 주세요.
+[판단 결과 — 이미 정해졌으니 절대 바꾸지 마세요]
+${isGood
+  ? `잘한 어림입니다. 몇십 수준으로 알맞게 어림했으니 칭찬해 주세요. ${direction === 'same' ? '' : `그리고 실제 몫은 ${estimate}보다 조금 ${direction === 'bigger' ? '작을' : '클'} 것이라고 덧붙여 주세요.`}`
+  : `아쉬운 어림입니다. "아쉽네요."로 시작하고, ${product}${compareText.replace('습니다', '다')}는 점을 짚으며 ${direction === 'bigger' ? '더 작은' : '더 큰'} 몇십으로 생각해 보라고 힌트를 주세요.`}
 
 [작성 규칙]
-${isOneDigitAnswer ? 
-`1. 정답이 한 자리 수(10보다 작음)이므로, 어림한 값이 정답과 1~2 정도 차이면 잘한 것입니다.
-2. 차이가 2 이하면 잘 어림했다고 칭찬해주세요.
-3. 차이가 크면 "아쉽네요."로 시작하면서, "어림한 몫 × 나누는 수"의 결과가 나누어지는 수와 비교해 힌트를 주세요.` :
-`1. 어림하기는 "몇십" 단위로 맞추는 것이 목표입니다. 학생이 어림한 값을 10으로 나눈 몫과 정답을 10으로 나눈 몫이 같으면 매우 잘한 것입니다.
-   예시: 정답이 34일 때 30~39 범위로 어림하면 잘한 것입니다.
-2. 몇십 단위로 잘 어림했다면 크게 칭찬해주세요.
-3. 몇십 단위를 벗어났다면 "아쉽네요."로 시작하면서, "어림한 몫 × 나누는 수"의 결과가 나누어지는 수보다 크거나 작다는 것을 언급하며 힌트를 주세요.`}
-4. 존댓말을 쓰고, 이모지(😊)를 하나 정도 사용해 주세요.
-5. 답변은 3문장을 넘기지 마세요.
-6. 절대 정답을 직접적으로 말하지 마세요.
-
-[좋은 답변 예시]
-${isOneDigitAnswer ?
-`- "잘 어림했어요! 2에 4를 곱하면 8이 되니까 딱 맞네요. 훌륭해요! 👍"
-- "아주 가까워요! 어림하기를 잘하네요. 😊"
-- "아쉽네요. 5에 2를 곱하면 10이 되어서 8보다 크네요. 5보다 작은 수로 생각해보면 어떨까요? 😊"` :
-`- "와, 정말 잘 어림했어요! 30에 2를 곱하면 60이 되니까 68과 가까워요. 훌륭해요! 👍"
-- "30대로 잘 생각했어요! 어림하기를 정말 잘하네요. 😊"
-- "아쉽네요. 40에 3을 곱하면 120이 되어서 132보다 작네요. 40보다 조금 더 큰 수로 생각해보면 어떨까요? 😊"
-- "아쉽네요. 60에 2를 곱하면 120이 되어서 85보다 크네요. 60보다 작은 수수로 다시 생각해봐요! 😊"`}`;
+1. 존댓말을 쓰고, 이모지를 하나 정도 사용해 주세요.
+2. 답변은 2~3문장으로 짧게 써 주세요.
+3. 정답(실제 몫)을 직접 말하지 마세요.
+4. 위 판단 결과와 반대되는 말을 하지 마세요.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -65,7 +92,7 @@ ${isOneDigitAnswer ?
           { role: 'system', content: '당신은 친절한 초등학교 수학 선생님입니다. 짧고 격려하는 말투로 답변합니다.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.5,
+        temperature: 0.3,
         max_tokens: 150
       })
     });
@@ -521,17 +548,20 @@ const App = () => {
     setEstimateError('');
     setEstimateSubmitted(true);
 
-    // AI 피드백 요청
+    // 어림 판단은 코드가 정확하게 하고, AI는 문장만 다듬음
+    const result = evaluateEstimate(problem.dividend, problem.divisor, num);
+    const basicFeedback = buildEstimateFeedback(problem.dividend, problem.divisor, num, result);
+
     if (hasApiKey) {
       setAiFeedbackLoading(true);
       setAiFeedback('');
-      const feedback = await getAIFeedback(problem.dividend, problem.divisor, num, quotient);
+      const feedback = await getAIFeedback(problem.dividend, problem.divisor, num, result);
       setAiFeedbackLoading(false);
-      if (feedback) {
-        setAiFeedback(feedback);
-      } else {
-        setAiFeedback('AI 피드백을 가져오는 데 실패했어요. 하지만 계속 진행할 수 있어요!');
-      }
+      // AI가 판단과 반대로 말하면(잘했는데 '아쉽' 등) 기본 피드백을 사용
+      const contradicts = feedback && (result.isGood ? feedback.includes('아쉽') : !feedback.includes('아쉽'));
+      setAiFeedback(feedback && !contradicts ? feedback : basicFeedback);
+    } else {
+      setAiFeedback(basicFeedback);
     }
   };
 
