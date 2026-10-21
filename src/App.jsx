@@ -175,12 +175,12 @@ const Block = ({ id, type, onClick, isHammerMode }) => {
   // 이미지 경로와 크기 설정
   const getBlockConfig = () => {
     if (type === 'hundred') {
-      return { src: '/image/hundred.png', size: 'w-14 h-14 sm:w-16 sm:h-16', label: '100' };
+      return { src: '/image/hundred.webp', size: 'w-14 h-14 sm:w-16 sm:h-16', label: '100' };
     }
     if (type === 'ten') {
-      return { src: '/image/ten.png', size: 'w-11 h-11 sm:w-12 sm:h-12', label: '10' };
+      return { src: '/image/ten.webp', size: 'w-11 h-11 sm:w-12 sm:h-12', label: '10' };
     }
-    return { src: '/image/one.png', size: 'w-8 h-8 sm:w-9 sm:h-9', label: '1' };
+    return { src: '/image/one.webp', size: 'w-8 h-8 sm:w-9 sm:h-9', label: '1' };
   };
 
   const config = getBlockConfig();
@@ -261,15 +261,15 @@ const SourceArea = ({ blocks, onBlockClick, isHammerMode }) => {
       </div>
       <div className="mt-1 flex gap-4 text-xs sm:text-sm text-slate-700">
         <div className="flex items-center gap-1">
-          <img src="/image/hundred.png" alt="백 모형" className="w-5 h-5 object-contain" />
+          <img src="/image/hundred.webp" alt="백 모형" className="w-5 h-5 object-contain" />
           <span>백 모형 (100)</span>
         </div>
         <div className="flex items-center gap-1">
-          <img src="/image/ten.png" alt="십 모형" className="w-4 h-4 object-contain" />
+          <img src="/image/ten.webp" alt="십 모형" className="w-4 h-4 object-contain" />
           <span>십 모형 (10)</span>
         </div>
         <div className="flex items-center gap-1">
-          <img src="/image/one.png" alt="일 모형" className="w-3 h-3 object-contain" />
+          <img src="/image/one.webp" alt="일 모형" className="w-3 h-3 object-contain" />
           <span>일 모형 (1)</span>
         </div>
       </div>
@@ -941,7 +941,7 @@ const App = () => {
           <span className="w-10 h-10 bg-pastelBlue rounded-full flex items-center justify-center text-xl border-2 border-sky-400 shadow-md hover:scale-110 hover:bg-sky-300 transition-all">
             🏠
           </span>
-          <img src="/image/head.png" alt="나눗셈 탐험대" className="h-[50px] object-contain" />
+          <img src="/image/head.webp" alt="나눗셈 탐험대" className="h-[50px] object-contain" />
         </a>
         <div className="flex gap-2 flex-wrap">
           <a 
