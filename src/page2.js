@@ -15,73 +15,127 @@ let currentColor = '#000000';
 let pencilWidth = 3;           // 펜 굵기 (기본: 보통)
 let eraserWidth = 20;          // 지우개 굵기 (기본: 보통)
 
-// ===== 레벨별 설정 =====
-const LEVEL_CONFIG = [
-  { 
-    name: '(몇십)÷(몇) (1)',
-    dividendMin: 10, dividendMax: 90, divisorMin: 2, divisorMax: 9,
-    description: '10~90 사이의 10의 배수를 한 자리 수(2~9)로 나누어 떨어지는',
-    mustBeTen: true
+// ===== 차시별 숫자 규칙 =====
+// 숫자는 코드가 교과서 차시 규칙에 맞게 뽑고, AI는 이야기 문장만 만든다.
+const LEVEL_RULES = [
+  {
+    name: '(몇십)÷(몇) (1)', // 2차시: 내림 없음, 몫이 몇십 (예: 60÷3=20)
+    describe: '내림이 없는 (몇십)÷(몇), 나머지 없음',
+    test: (n, d) => n >= 10 && n <= 90 && n % 10 === 0 && (n / 10) >= d && (n / 10) % d === 0
   },
-  { 
-    name: '(몇십)÷(몇) (2)',
-    dividendMin: 10, dividendMax: 90, divisorMin: 2, divisorMax: 9,
-    description: '10~90 사이의 10의 배수를 한 자리 수(2~9)로 나누는 (나머지 있을 수 있음)',
-    mustBeTen: true
+  {
+    name: '(몇십)÷(몇) (2)', // 3차시: 내림 있음, 나머지 0 (예: 70÷5=14)
+    describe: '내림이 있는 (몇십)÷(몇), 나머지 없음',
+    test: (n, d) => n >= 10 && n <= 90 && n % 10 === 0 && (n / 10) >= d && (n / 10) % d !== 0 && n % d === 0
   },
-  { 
-    name: '(몇십몇)÷(몇) (1)',
-    dividendMin: 10, dividendMax: 99, divisorMin: 2, divisorMax: 9,
-    description: '10~99 사이의 두 자리 수를 한 자리 수(2~9)로 나누어 떨어지는',
-    mustBeTen: false
+  {
+    name: '(몇십몇)÷(몇) (1)', // 4차시: 십·일의 자리 모두 나누어떨어짐 (예: 36÷3=12)
+    describe: '내림이 없는 (몇십몇)÷(몇), 나머지 없음',
+    test: (n, d) => {
+      const t = Math.floor(n / 10), o = n % 10;
+      return n >= 11 && n <= 99 && o !== 0 && t >= d && t % d === 0 && o % d === 0;
+    }
   },
-  { 
-    name: '(몇십몇)÷(몇) (2)',
-    dividendMin: 10, dividendMax: 99, divisorMin: 2, divisorMax: 9,
-    description: '10~99 사이의 두 자리 수를 한 자리 수(2~9)로 나누는',
-    mustBeTen: false
+  {
+    name: '(몇십몇)÷(몇) (2)', // 5차시: 내림 있음, 나머지 0 (예: 45÷3=15)
+    describe: '내림이 있는 (몇십몇)÷(몇), 나머지 없음',
+    test: (n, d) => {
+      const t = Math.floor(n / 10), o = n % 10;
+      return n >= 11 && n <= 99 && o !== 0 && t >= d && t % d !== 0 && n % d === 0;
+    }
   },
-  { 
-    name: '(세 자리 수)÷(한 자리 수) (1)',
-    dividendMin: 100, dividendMax: 999, divisorMin: 2, divisorMax: 9,
-    description: '100~999 사이의 세 자리 수를 한 자리 수(2~9)로 나누어 떨어지는',
-    mustBeTen: false
+  {
+    name: '(세 자리 수)÷(한 자리 수) (1)', // 9차시: 몫이 세 자리 (백의 자리 ≥ 나누는 수), 나머지 허용
+    describe: '몫이 세 자리 수인 (세 자리 수)÷(한 자리 수), 나머지가 있을 수 있음',
+    test: (n, d) => n >= 100 && n <= 999 && Math.floor(n / 100) >= d
   },
-  { 
-    name: '(세 자리 수)÷(한 자리 수) (2)',
-    dividendMin: 100, dividendMax: 999, divisorMin: 2, divisorMax: 9,
-    description: '100~999 사이의 세 자리 수를 한 자리 수(2~9)로 나누는',
-    mustBeTen: false
+  {
+    name: '(세 자리 수)÷(한 자리 수) (2)', // 10차시: 몫이 두 자리 (백의 자리 < 나누는 수), 나머지 허용
+    describe: '몫이 두 자리 수인 (세 자리 수)÷(한 자리 수), 나머지가 있을 수 있음',
+    test: (n, d) => n >= 100 && n <= 999 && Math.floor(n / 100) < d
   }
 ];
 
-// ===== Fallback 문제 (API 실패 시 사용) =====
-const FALLBACK_PROBLEMS = [
-  [
-    { question: "사탕 30개를 3명의 친구에게 똑같이 나누어 주려고 합니다. 한 명에게 몇 개씩 줄 수 있을까요?", answer: 10, remainder: 0, dividend: 30, divisor: 3, hint: "30을 3으로 나누어 보세요." },
-    { question: "연필 40자루를 5명이 똑같이 나누어 가집니다. 한 명당 몇 자루씩 가질 수 있나요?", answer: 8, remainder: 0, dividend: 40, divisor: 5, hint: "40 ÷ 5를 계산해 보세요." }
-  ],
-  [
-    { question: "구슬 50개를 6개의 상자에 똑같이 나누어 담으려고 합니다. 한 상자에 몇 개씩 담을 수 있고, 나머지는 몇 개인가요?", answer: 8, remainder: 2, dividend: 50, divisor: 6, hint: "50 ÷ 6의 몫과 나머지를 구해보세요." },
-    { question: "풍선 70개를 8명에게 똑같이 나누어 줍니다. 한 명당 몇 개씩 받고, 나머지는 몇 개인가요?", answer: 8, remainder: 6, dividend: 70, divisor: 8, hint: "70 ÷ 8을 계산해 보세요." }
-  ],
-  [
-    { question: "색종이 36장을 4명이 똑같이 나누어 가집니다. 한 명이 몇 장씩 가질 수 있나요?", answer: 9, remainder: 0, dividend: 36, divisor: 4, hint: "36 ÷ 4를 계산해 보세요." },
-    { question: "쿠키 48개를 6개의 접시에 똑같이 담습니다. 한 접시에 몇 개씩 담을 수 있나요?", answer: 8, remainder: 0, dividend: 48, divisor: 6, hint: "48을 6으로 나누어 보세요." }
-  ],
-  [
-    { question: "사과 57개를 7명이 똑같이 나누어 가집니다. 한 명당 몇 개씩 가지고, 나머지는 몇 개인가요?", answer: 8, remainder: 1, dividend: 57, divisor: 7, hint: "57 ÷ 7의 몫과 나머지를 구해보세요." },
-    { question: "도넛 65개를 8개의 상자에 나누어 담습니다. 한 상자에 몇 개씩 담고, 나머지는 몇 개인가요?", answer: 8, remainder: 1, dividend: 65, divisor: 8, hint: "65 ÷ 8을 계산해 보세요." }
-  ],
-  [
-    { question: "초콜릿 126개를 3명의 친구에게 똑같이 나누어 줍니다. 한 명에게 몇 개씩 줄 수 있나요?", answer: 42, remainder: 0, dividend: 126, divisor: 3, hint: "126 ÷ 3을 세로셈으로 계산해 보세요." },
-    { question: "연필 248자루를 4개의 필통에 똑같이 나누어 담습니다. 한 필통에 몇 자루씩 담나요?", answer: 62, remainder: 0, dividend: 248, divisor: 4, hint: "248 ÷ 4를 계산해 보세요." }
-  ],
-  [
-    { question: "스티커 357장을 7명에게 똑같이 나누어 줍니다. 한 명당 몇 장씩 받을 수 있나요?", answer: 51, remainder: 0, dividend: 357, divisor: 7, hint: "357 ÷ 7을 세로셈으로 풀어보세요." },
-    { question: "구슬 523개를 9개의 주머니에 똑같이 나누어 담습니다. 한 주머니에 몇 개씩 담고, 나머지는 몇 개인가요?", answer: 58, remainder: 1, dividend: 523, divisor: 9, hint: "523 ÷ 9의 몫과 나머지를 구해보세요." }
-  ]
+// 규칙에 맞는 (나누어지는 수, 나누는 수) 쌍을 모두 모아 두고 무작위로 하나 고르기
+const VALID_PAIRS = LEVEL_RULES.map(rule => {
+  const pairs = [];
+  for (let n = 10; n <= 999; n++) {
+    for (let d = 2; d <= 9; d++) {
+      if (rule.test(n, d)) pairs.push([n, d]);
+    }
+  }
+  return pairs;
+});
+
+function pickNumbers(levelIndex) {
+  const pairs = VALID_PAIRS[levelIndex];
+  const [dividend, divisor] = pairs[Math.floor(Math.random() * pairs.length)];
+  return {
+    dividend,
+    divisor,
+    quotient: Math.floor(dividend / divisor),
+    remainder: dividend % divisor
+  };
+}
+
+// ===== 받침에 맞는 조사 고르기 =====
+function endsWithBatchim(text) {
+  const str = String(text);
+  const last = str[str.length - 1];
+  if (/[0-9]/.test(last)) {
+    const n = Number(str.replace(/[^0-9]/g, ''));
+    if (n % 10 === 0) return true; // 십, 백
+    return [1, 3, 6, 7, 8].includes(n % 10); // 일, 삼, 육, 칠, 팔
+  }
+  const code = last.charCodeAt(0) - 0xac00;
+  if (code < 0 || code > 11171) return false;
+  return code % 28 !== 0;
+}
+const j = (text, withBatchim, withoutBatchim) => `${text}${endsWithBatchim(text) ? withBatchim : withoutBatchim}`;
+
+// ===== AI 없이 쓰는 문장 틀 =====
+const ITEMS = [
+  { name: '색종이', bundle: true, unit: '장' }, { name: '연필', bundle: true, unit: '자루' }, { name: '지우개', unit: '개' },
+  { name: '사탕', unit: '개' }, { name: '딸기', unit: '개' }, { name: '쿠키', unit: '개' },
+  { name: '구슬', unit: '개' }, { name: '스티커', bundle: true, unit: '장' }, { name: '공책', bundle: true, unit: '권' },
+  { name: '떡', unit: '개' }, { name: '카드', bundle: true, unit: '장' }, { name: '초콜릿', unit: '개' }
 ];
+const SHARE_TARGETS = [ // 똑같이 나누기(등분제)
+  { count: '명의 친구에게', each: '한 명에게', verb: '나누어 주려고', ask: '줄' },
+  { count: '개의 상자에', each: '한 상자에', verb: '나누어 담으려고', ask: '담을' },
+  { count: '개의 접시에', each: '한 접시에', verb: '나누어 담으려고', ask: '담을' },
+  { count: '개의 모둠에', each: '한 모둠에', verb: '나누어 주려고', ask: '줄' }
+];
+const GROUP_TARGETS = [ // 몇 개씩 묶기(포함제)
+  { pack: '봉지', verb: '담으려고' }, { pack: '상자', verb: '담으려고' }, { pack: '묶음', verb: '묶으려고' }
+];
+const pickOne = arr => arr[Math.floor(Math.random() * arr.length)];
+
+function buildTemplateQuestion({ dividend, divisor, remainder }) {
+  const item = pickOne(ITEMS);
+  const amount = `${dividend}${item.unit}`;
+  const leftover = remainder > 0 ? `, 남는 ${j(item.name, '은', '는')} 몇 ${item.unit}인지` : '';
+  if (Math.random() < 0.5) {
+    const t = pickOne(SHARE_TARGETS);
+    return `${item.name} ${j(amount, '을', '를')} ${divisor}${t.count} 똑같이 ${t.verb} 합니다. ` +
+      `${t.each} 몇 ${item.unit}씩 ${t.ask} 수 있${remainder > 0 ? '고' : '는지'}${leftover} 구해 봅시다.`;
+  }
+  const g = pickOne(GROUP_TARGETS.filter(t => t.pack !== '묶음' || item.bundle)); // 묶음은 묶을 수 있는 물건만
+  const perPack = `${divisor}${item.unit}`;
+  return `${item.name} ${j(amount, '을', '를')} 한 ${g.pack}에 ${perPack}씩 ${g.verb} 합니다. ` +
+    `몇 ${j(g.pack, '이', '가')} ${remainder > 0 ? '되고' : '되는지'}${leftover} 구해 봅시다.`;
+}
+
+function makeProblem(nums, question) {
+  return {
+    question,
+    answer: nums.quotient,
+    remainder: nums.remainder,
+    dividend: nums.dividend,
+    divisor: nums.divisor,
+    hint: `${nums.dividend} ÷ ${j(nums.divisor, '을', '를')} 계산해 보세요.`
+  };
+}
 
 // ===== 초기화 =====
 function init() {
@@ -207,116 +261,69 @@ window.generateNewProblem = async function() {
   enableAnswerInput();
 }
 
-// ===== OpenAI API 호출 함수 =====
+// ===== OpenAI API 호출 함수 (숫자는 코드가 정하고 AI는 문장만 만듦) =====
 async function generateProblemAI(levelIndex) {
-  const config = LEVEL_CONFIG[levelIndex];
-  
-  // 레벨별 난이도 설명
-  const levelDescriptions = [
-    '(몇십)÷(몇)(1), 내림 없음 (예: 60÷3=20). 십의 자리가 나누는 수로 나누어떨어짐. 나머지 0.',
-    '(몇십)÷(몇)(2), 내림 있음 (예: 70÷6=11...4). 십의 자리를 나눈 나머지가 일의 자리로 내림. 나머지 0.',
-    '(몇십몇)÷(몇)(1), 내림 없음 (예: 36÷3=12). 십의 자리와 일의 자리 모두 나누어떨어짐. 나머지 0.',
-    '(몇십몇)÷(몇)(2), 내림 있음 (예: 45÷3=15). 십의 자리 나머지가 일의 자리로 이동. 나머지 0.',
-    '(세 자리)÷(한 자리)(1), 몫이 세 자리 (예: 484÷4=121). 백의 자리가 나누는 수보다 크거나 같음. 나머지 있어도 됨.',
-    '(세 자리)÷(한 자리)(2), 몫이 두 자리 (예: 250÷5=50). 백의 자리가 나누는 수보다 작음. 나머지 있어도 됨.'
-  ];
-  
-  // 나머지 허용 여부
-  const allowRemainder = levelIndex >= 4; // Level 5, 6만 나머지 허용
-  
-  const prompt = `당신은 다정한 초등학교 3학년 수학 선생님입니다.
-아래 난이도에 맞는 나눗셈 실생활 문제를 만들어주세요.
+  const nums = pickNumbers(levelIndex);
+  const { dividend, divisor, remainder } = nums;
 
-**난이도 (Level ${levelIndex + 1}):** ${levelDescriptions[levelIndex]}
+  const prompt = `초등학교 3학년 학생을 위한 나눗셈 실생활 문제 문장을 하나 만들어 주세요.
 
-**조건:**
-- 나누어지는 수 범위: ${config.dividendMin} ~ ${config.dividendMax}
-- 나누는 수 범위: ${config.divisorMin} ~ ${config.divisorMax}
-${config.mustBeTen ? '- 나누어지는 수는 반드시 10의 배수여야 합니다.' : ''}
-${allowRemainder ? '- 나머지가 있어도 되고 없어도 됩니다.' : '- 반드시 나머지가 0이어야 합니다 (나누어떨어지는 문제).'}
+[반드시 지킬 숫자 — 절대 바꾸지 마세요]
+- 나누어지는 수: ${dividend}
+- 나누는 수: ${divisor}
+- ${remainder > 0 ? '나머지가 있는 문제입니다. 몫과 함께 남는 양도 묻는 문장으로 끝내세요.' : '나누어떨어지는 문제입니다. 남는 양은 묻지 마세요.'}
 
-**수학적 정확성 검증:**
-- divisor로 dividend를 나눈 값이 위 난이도 설명과 정확히 일치하는지 반드시 확인하세요.
-- quotient = Math.floor(dividend / divisor)
-- remainder = dividend - (quotient * divisor)
+[규칙]
+- ${dividend}과 ${divisor}가 문장에 숫자 그대로 나와야 합니다.
+- 똑같이 나누어 주기(예: "연필 36자루를 3명에게 똑같이 나누어 주려고 합니다.") 또는 몇 개씩 묶기(예: "딸기 72개를 한 봉지에 4개씩 담으려고 합니다.") 중 하나로 만드세요.
+- 소재는 학교 물건, 간식, 생활 물건 등 아이들에게 친숙한 것으로 하세요.
+- 문장은 "~하려고 합니다. ~ 구해 봅시다."로 끝내고, 정답은 쓰지 마세요.
 
-**소재:**
-- 아이들에게 친숙한 학교(색종이, 연필, 지우개), 간식(떡, 딸기, 사탕, 쿠키), 생활(대나무 칫솔, 텀블러, 친환경 관련) 등 다양하게 사용하세요.
+JSON으로만 답하세요: {"question": "문제 문장"}`;
 
-**중요: 나누는 수는 반드시 문제에 명확히 나타나야 합니다!**
-- 좋은 예: "사탕 48개를 6명의 친구에게 똑같이 나누어 주려고 합니다."
-- 좋은 예: "색종이 60장을 한 묶음에 5장씩 만들려고 합니다."
-- 좋은 예: "딸기 77개를 주스 한 잔에 7개씩 넣으려고 합니다."
-- 나쁜 예: "사탕을 친구들과 나누려고 합니다." ← 몇 명인지 불명확!
-
-**문장 스타일 (필수):**
-- 나머지가 0일 때: "~하려고 합니다. 필요한 [단위]는 몇 [단위]인지 구해 봅시다."
-  예: "연필 36자루를 6명에게 똑같이 나누어 주려고 합니다. 한 명은 몇 자루씩 받는지 구해 봅시다."
-- 나머지가 있을 때: "~하려고 합니다. 필요한 [단위]는 몇 [단위]이고, 남는 [물건]은 몇 개인지 구해 봅시다."
-  예: "딸기 77개를 주스 한 잔에 7개씩 넣으려고 합니다. 주스를 몇 잔 만들 수 있고, 남는 딸기는 몇 개인지 구해 봅시다."
-
-**출력 형식:**
-반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트나 마크다운 없이 JSON만 출력하세요.
-
-{
-  "question": "문제 지문 (나누는 수가 반드시 명시되어야 함)",
-  "dividend": 나누어지는수,
-  "divisor": 나누는수,
-  "quotient": 몫,
-  "remainder": 나머지,
-  "hasRemainder": true_또는_false
-}`;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: '당신은 초등학교 수학 문제를 만드는 선생님입니다. JSON 형식으로만 응답합니다. 마크다운 코드 블록을 사용하지 마세요.' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.6,
-      max_tokens: 500
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`API 호출 실패: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices[0].message.content.trim();
-  
   try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: '당신은 초등학교 수학 문제 문장을 쓰는 선생님입니다. JSON 형식으로만 응답합니다. 마크다운 코드 블록을 사용하지 마세요.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 300
+      })
+    });
+    if (!response.ok) throw new Error(`API 호출 실패: ${response.status}`);
+
+    const data = await response.json();
+    const content = data.choices[0].message.content.trim();
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      // 기존 형식으로 변환 (answer, hint, dividend, divisor 추가)
-      return {
-        question: parsed.question,
-        answer: parsed.quotient,
-        remainder: parsed.remainder || 0,
-        dividend: parsed.dividend,
-        divisor: parsed.divisor,
-        hint: `${parsed.dividend} ÷ ${parsed.divisor}를 계산해 보세요.`
-      };
+    const question = jsonMatch ? JSON.parse(jsonMatch[0]).question : '';
+
+    // AI 문장 검사: 숫자가 그대로 있고, 나머지 질문 여부가 맞는지
+    const numbersInText = (question.match(/\d+/g) || []).map(Number);
+    const hasBothNumbers = numbersInText.includes(dividend) && numbersInText.includes(divisor);
+    const asksLeftover = /남는|남은|나머지/.test(question);
+    const leftoverOk = remainder > 0 ? asksLeftover : !asksLeftover;
+    if (question && hasBothNumbers && leftoverOk) {
+      return makeProblem(nums, question);
     }
-    throw new Error('JSON 형식이 아닙니다');
-  } catch (e) {
-    console.error('JSON 파싱 실패:', content);
-    throw e;
+    console.warn('AI 문장이 조건에 맞지 않아 기본 문장을 사용합니다:', question);
+  } catch (error) {
+    console.error('AI 문제 생성 오류:', error);
   }
+  return makeProblem(nums, buildTemplateQuestion(nums));
 }
 
-// ===== Fallback 문제 가져오기 =====
+// ===== AI 없이 문제 만들기 =====
 function getRandomFallbackProblem(levelIndex) {
-  const problems = FALLBACK_PROBLEMS[levelIndex];
-  const randomIndex = Math.floor(Math.random() * problems.length);
-  return { ...problems[randomIndex] };
+  const nums = pickNumbers(levelIndex);
+  return makeProblem(nums, buildTemplateQuestion(nums));
 }
 
 // ===== 문제 표시 =====
