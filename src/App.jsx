@@ -326,192 +326,142 @@ const SourceArea = ({ blocks, onBlockClick, isHammerMode }) => {
   );
 };
 
-// 세로셈 표 형식 컴포넌트
+// 세로셈 표 형식 컴포넌트 (교과서 3-2 줄여 쓰는 방식)
+// - 몫의 앞자리 0은 쓰지 않음 (예: 156÷3 → 52)
+// - 몫이 0인 자리는 빼는 줄을 따로 쓰지 않고, 다음 자리를 바로 내려 씀
+// - 빼기 줄은 실선, 칸 구분은 점선
 const LongDivisionGrid = ({ dividend, divisor, steps, completedSteps }) => {
   const digits = String(dividend).split('').map((d) => Number(d));
   const numDigits = digits.length;
-  
-  // 몫의 각 자릿수
-  const quotientDigits = steps.map((s) => s.qDigit);
-  
-  // 단계별 색상 정의
+  const done = Math.min(completedSteps, steps.length);
+
+  // 자리별 색: 3자리 백(초록)·십(파랑)·일(빨강) / 2자리 십(초록)·일(파랑)
   const getStepColor = (stepIdx) => {
-    if (numDigits === 3) {
-      // 3자리: 0=백(초록), 1=십(파란), 2=일(빨간)
-      if (stepIdx === 0) return 'text-emerald-600';
-      if (stepIdx === 1) return 'text-blue-600';
-      if (stepIdx === 2) return 'text-red-600';
-    } else if (numDigits === 2) {
-      // 2자리: 0=십(초록), 1=일(파란)
-      if (stepIdx === 0) return 'text-emerald-600';
-      if (stepIdx === 1) return 'text-blue-600';
-    } else {
-      // 1자리: 0=일(초록)
-      return 'text-emerald-600';
-    }
-    return 'text-slate-900';
+    const fromRight = numDigits - 1 - stepIdx; // 0=일, 1=십, 2=백
+    if (numDigits === 3) return ['text-red-600', 'text-blue-600', 'text-emerald-600'][fromRight];
+    if (numDigits === 2) return ['text-blue-600', 'text-emerald-600'][fromRight];
+    return 'text-emerald-600';
   };
-  
-  // 현재 진행 중인 단계의 색상
-  const currentStepIdx = completedSteps > 0 ? completedSteps - 1 : -1;
-  const currentStepColor = currentStepIdx >= 0 ? getStepColor(currentStepIdx) : 'text-slate-900';
-  
-  // 세로셈 셀 스타일 - 점선으로 구분
-  const cellStyle = 'w-12 min-h-[3rem] sm:w-14 sm:min-h-[3.5rem] flex items-center justify-center text-lg sm:text-xl font-bold border-l border-dashed border-slate-300';
-  const emptyCellStyle = 'w-12 min-h-[3rem] sm:w-14 sm:min-h-[3.5rem] flex items-center justify-center text-lg sm:text-xl font-bold border-l border-dashed border-slate-200 text-slate-300';
-  const spacerStyle = 'w-12 sm:w-14';
-  const emptySpacerStyle = 'w-12 sm:w-14 border-l border-dashed border-slate-300';
-  
+
+  // 몫이 처음으로 0이 아닌 자리 (그 앞은 몫을 쓰지 않음)
+  const firstIdx = steps.findIndex((st) => st.qDigit > 0);
+  const lead = firstIdx === -1 ? steps.length - 1 : firstIdx;
+
+  // 수 하나를 '끝나는 칸'에 맞춰 칸별 글자로 바꾸기
+  const place = (value, endCol, color = 'text-slate-900') => {
+    const str = String(value);
+    const cells = {};
+    for (let i = 0; i < str.length; i++) cells[endCol - (str.length - 1) + i] = { ch: str[i], color };
+    return cells;
+  };
+
+  // 계산 줄 만들기: 몫이 0이 아닌 자리마다 [빼는 수, 실선, 다음에 나눌 수]
+  const rows = [];
+  for (let k = lead; k < done; k++) {
+    const st = steps[k];
+    if (k > lead && st.qDigit === 0) continue; // 몫이 0인 자리는 빼는 줄을 쓰지 않음
+    if (st.qDigit > 0 || k === lead) {
+      rows.push({
+        kind: 'product',
+        cells: place(st.product, k),
+        note: `← ${divisor} × ${st.qDigit * Math.pow(10, numDigits - k - 1)}`,
+      });
+      rows.push({ kind: 'line' });
+      // 다음에 나눌 수: 이미 마친 '몫이 0인 자리'는 건너뛰고 그 다음 자리까지 내려 씀
+      let j = k + 1;
+      while (j < done && steps[j].qDigit === 0) j++;
+      if (j >= steps.length) {
+        rows.push({ kind: 'work', cells: place(steps[steps.length - 1].remainder, steps.length - 1) }); // 마지막 나머지
+      } else {
+        rows.push({ kind: 'work', cells: place(steps[j].bringDown, j, getStepColor(j)) });
+      }
+    }
+  }
+
+  // 나누는 수: 지금 나누고 있는 자리의 색 (교과서처럼 단계마다 바뀜)
+  const divisorColor = getStepColor(Math.min(Math.max(done, lead), steps.length - 1));
+  // 첫 자리에서 나누고 있는 수(예: 156÷3의 15)를 색칠
+  const leadColor = done > lead ? getStepColor(lead) : null;
+
+  const cellW = 'w-12 sm:w-14';
+  const cellH = 'h-12 sm:h-14';
+  const digitCell = (key, content, color, extra = '') => (
+    <div
+      key={key}
+      className={`${cellW} ${cellH} flex items-center justify-center text-xl sm:text-2xl font-bold border-l border-dashed border-slate-300 ${color || ''}`}
+      style={extra === 'top-bar' ? { borderTop: '2.5px solid #334155' } : undefined}
+    >
+      {content}
+    </div>
+  );
+  // 왼쪽(나누는 수 자리)와 오른쪽 끝 점선
+  const left = (content = null, color = '') => (
+    <div className={`${cellW} ${cellH} flex items-center justify-end pr-0.5 text-xl sm:text-2xl font-bold ${color}`}>{content}</div>
+  );
+  const bracketSpace = <div className="w-4 sm:w-5" />;
+  const rightEdge = <div className={`${cellH} border-l border-dashed border-slate-300`} />;
+
+  const renderRow = (row, idx) => {
+    if (row.kind === 'line') {
+      return (
+        <div key={`r-${idx}`} className="flex items-start">
+          <div className={`${cellW} shrink-0`} />
+          <div className="w-4 sm:w-5 shrink-0" />
+          <div className="flex" style={{ borderTop: '2px solid #334155' }}>
+            {digits.map((_, c) => (
+              <div key={c} className={`${cellW} h-0`} />
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div key={`r-${idx}`} className="flex items-center">
+        {left()}
+        {bracketSpace}
+        {digits.map((_, c) => digitCell(c, row.cells[c]?.ch ?? '', row.cells[c]?.color))}
+        {rightEdge}
+        {row.note && (
+          <div className="ml-3 text-xs sm:text-sm text-slate-500 whitespace-nowrap">{row.note}</div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col items-start gap-0">
-      {/* 몫 행 (맨 위) */}
+    <div className="flex flex-col items-start">
+      {/* 몫 */}
       <div className="flex items-center">
-        <div className="w-12 sm:w-14 border-l border-dashed border-slate-300" /> {/* 나누는 수 자리 빈 공간 */}
-        <div className="w-6 sm:w-8" /> {/* 괄호 자리 빈 공간 */}
-        {digits.map((_, idx) => (
-          <div
-            key={`q-${idx}`}
-            className={completedSteps > idx ? cellStyle : emptyCellStyle}
-          >
-            {completedSteps > idx && quotientDigits[idx] !== undefined ? String(quotientDigits[idx]) : ''}
-          </div>
-        ))}
-      </div>
-      
-      {/* 나눗셈 기호와 나눠지는 수 행 */}
-      <div className="flex items-center">
-        {/* 나누는 수 (현재 단계 색상 적용, 점선 추가) */}
-        <div className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-lg sm:text-xl font-bold border-l border-dashed border-slate-300 ${currentStepColor}`}>
-          {divisor}
-        </div>
-        {/* 괄호 기호 ) (위에 실선 추가) */}
-        <div className="w-6 sm:w-8 h-12 sm:h-14 flex items-center justify-center text-2xl sm:text-3xl font-bold text-slate-700 border-t-2 border-slate-700">
-          )
-        </div>
-        {/* 나눠지는 수 각 자릿수 (위에 실선) */}
-        {digits.map((d, idx) => {
-          // 백의 자리(첫 번째 자릿수)이고 완료된 단계가 있을 때만 색상 적용
-          const isFirstDigitWithProgress = idx === 0 && completedSteps > 0;
-          const digitColor = isFirstDigitWithProgress ? getStepColor(0) : 'text-slate-900';
-          
-          return (
-            <div
-              key={`d-${idx}`}
-              className={`w-12 min-h-[3rem] sm:w-14 sm:min-h-[3.5rem] flex items-center justify-center text-lg sm:text-xl font-bold border-l border-slate-300 border-t-2 border-slate-700 ${digitColor}`}
-              style={{ 
-                borderLeftStyle: 'dashed',
-                borderTopStyle: 'solid'
-              }}
-            >
-              {d}
-            </div>
-          );
+        {left()}
+        {bracketSpace}
+        {digits.map((_, idx) => {
+          const show = idx < done && idx >= lead && steps[idx];
+          return digitCell(`q-${idx}`, show ? String(steps[idx].qDigit) : '', 'text-slate-900');
         })}
+        {rightEdge}
       </div>
-      
-      {/* 계산 과정 (각 단계별) */}
-      {steps.map((step, stepIdx) => {
-        if (completedSteps <= stepIdx) return null;
-        
-        // product와 remainder의 자릿수 계산
-        const productStr = String(step.product);
-        const productLen = productStr.length;
-        
-        return (
-          <div key={`step-${stepIdx}`} className="flex flex-col">
-            {/* 빼는 수 (곱) - 자릿수별로 분리해서 표시 */}
-            <div className="flex items-center">
-              <div className="w-12 sm:w-14 border-l border-dashed border-slate-300" />
-              <div className="w-6 sm:w-8" />
-              {digits.map((_, idx) => {
-                // product가 시작되는 열 계산 (product 끝이 stepIdx 열에 맞춰짐)
-                const productStartCol = stepIdx - (productLen - 1);
-                const positionInProduct = idx - productStartCol;
-                
-                if (positionInProduct >= 0 && positionInProduct < productLen) {
-                  const digitChar = productStr[positionInProduct];
-                  return (
-                    <div key={`sub-${stepIdx}-${idx}`} className={`${cellStyle}`}>
-                      {digitChar}
-                    </div>
-                  );
-                }
-                return <div key={`sub-${stepIdx}-${idx}`} className={emptySpacerStyle} />;
-              })}
-              {/* 곱셈식 표시 */}
-              <div className="ml-3 text-xs sm:text-sm text-slate-600 whitespace-nowrap flex items-center">
-                ← {divisor} × {step.qDigit * Math.pow(10, numDigits - stepIdx - 1)}
-              </div>
-            </div>
-            
-            {/* 빼기 선 */}
-            <div className="flex items-center">
-              <div className="w-12 sm:w-14 border-l border-dashed border-slate-300" />
-              <div className="w-6 sm:w-8" />
-              {digits.map((_, idx) => {
-                // 모든 자릿수에 빼기 선 표시
-                return (
-                  <div key={`line-${stepIdx}-${idx}`} className={`${emptySpacerStyle} border-b-2 border-dashed border-slate-400`} />
-                );
-              })}
-            </div>
-            
-            {/* 나머지 + 다음 자리 내림 */}
-            <div className="flex items-center">
-              <div className="w-12 sm:w-14 border-l border-dashed border-slate-300" />
-              <div className="w-6 sm:w-8" />
-              {digits.map((_, idx) => {
-                // 마지막 단계가 아니면 나머지 + 다음 자리 표시
-                if (stepIdx < steps.length - 1) {
-                  // 다음 단계의 bringDown을 표시
-                  const nextBringDown = steps[stepIdx + 1].bringDown;
-                  const nextBringDownStr = String(nextBringDown);
-                  const nextLen = nextBringDownStr.length;
-                  
-                  // bringDown이 끝나는 열 = stepIdx + 1
-                  const bringDownStartCol = (stepIdx + 1) - (nextLen - 1);
-                  const posInBringDown = idx - bringDownStartCol;
-                  
-                  if (posInBringDown >= 0 && posInBringDown < nextLen) {
-                    const digitChar = nextBringDownStr[posInBringDown];
-                    
-                    // 전체 숫자(나머지 + 내림)를 다음 단계 색상으로 적용
-                    const textColor = getStepColor(stepIdx + 1);
-                    
-                    return (
-                      <div key={`rem-${stepIdx}-${idx}`} className={`${cellStyle} ${textColor} font-bold`}>
-                        {digitChar}
-                      </div>
-                    );
-                  }
-                } else {
-                  // 마지막 단계: 최종 나머지만 표시
-                  const remainderStr = String(step.remainder);
-                  const remLen = remainderStr.length;
-                  const remStartCol = stepIdx - (remLen - 1);
-                  const posInRem = idx - remStartCol;
-                  
-                  if (posInRem >= 0 && posInRem < remLen) {
-                    const digitChar = remainderStr[posInRem];
-                    return (
-                      <div key={`rem-${stepIdx}-${idx}`} className={`${cellStyle}`}>
-                        {digitChar}
-                      </div>
-                    );
-                  }
-                }
-                return <div key={`rem-${stepIdx}-${idx}`} className={emptySpacerStyle} />;
-              })}
-            </div>
-          </div>
-        );
-      })}
-      
-      {/* 최종 나머지 (마지막 단계 완료 시) */}
-      {completedSteps === steps.length && steps.length > 0 && (
-        <div className="mt-3 text-left pl-12 sm:pl-14">
+
+      {/* 나누는 수 ) 나누어지는 수 */}
+      <div className="flex items-stretch">
+        {left(divisor, divisorColor)}
+        <svg className="w-4 sm:w-5 h-12 sm:h-14 text-slate-700 shrink-0" viewBox="0 0 20 56" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M3 1 H20" stroke="currentColor" strokeWidth="2.5" fill="none" vectorEffect="non-scaling-stroke" />
+          <path d="M3 1 C 14 14, 14 42, 4 55" stroke="currentColor" strokeWidth="2.5" fill="none" vectorEffect="non-scaling-stroke" />
+        </svg>
+        {digits.map((d, idx) =>
+          digitCell(`d-${idx}`, d, leadColor && idx <= lead ? leadColor : 'text-slate-900', 'top-bar')
+        )}
+        {rightEdge}
+      </div>
+
+      {rows.map(renderRow)}
+
+      {/* 최종 나머지 */}
+      {done === steps.length && steps.length > 0 && (
+        <div className="mt-3 pl-12 sm:pl-14">
           <span className="text-sm font-semibold text-slate-700">
-            나머지: <span className="text-lg font-bold text-emerald-700">{steps[steps.length - 1].remainder}</span>
+            몫 <span className="text-lg font-bold text-sky-700">{Math.floor(dividend / divisor)}</span>
+            {' · '}나머지 <span className="text-lg font-bold text-emerald-700">{steps[steps.length - 1].remainder}</span>
           </span>
         </div>
       )}
