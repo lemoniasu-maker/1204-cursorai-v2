@@ -21,3 +21,11 @@ body {
 }
 
 
+
+/* 남은 수·합계가 바뀔 때 살짝 반짝임 */
+@keyframes count-flash {
+  0% { transform: scale(1.35); color: #f59e0b; }
+  100% { transform: scale(1); }
+}
+.count-flash { display: inline-block; animation: count-flash 0.45s ease-out; }
+@media (prefers-reduced-motion: reduce) { .count-flash { animation: none; } }
