@@ -209,10 +209,11 @@ const Block = ({ id, type, onClick, isHammerMode }) => {
   );
 };
 
-const Plate = ({ id, label, children, highlight }) => {
+const Plate = ({ id, label, children, highlight, total }) => {
   const { isOver, setNodeRef } = useDroppable({
     id,
   });
+  const flash = useChangedFlash(id, total);
 
   return (
     <div
@@ -223,8 +224,46 @@ const Plate = ({ id, label, children, highlight }) => {
     >
       <div className="flex items-center justify-between mb-1">
         <span className="text-base sm:text-lg font-bold text-sky-800">{label}</span>
+        <span className="inline-flex items-baseline gap-1.5 rounded-xl bg-sky-50 border-2 border-sky-200 px-2.5 py-0.5">
+          <span className="text-sm sm:text-base font-bold text-sky-800">합계</span>
+          <span className={`text-2xl sm:text-3xl font-extrabold text-sky-700 tabular-nums ${flash ? 'count-flash' : ''}`}>
+            {total}
+          </span>
+        </span>
       </div>
       <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+};
+
+// 숫자가 바뀔 때만 반짝이게 하기 위해 직전 값을 기억
+// (화면이 다시 그려질 때마다 상자가 새로 만들어지므로 컴포넌트 밖에 둠)
+const lastShownTotals = new Map();
+const useChangedFlash = (key, value) => {
+  const prev = lastShownTotals.get(key);
+  lastShownTotals.set(key, value);
+  return prev !== undefined && prev !== value;
+};
+
+// 남은 수와 모형별 개수 (백·십·일)
+const BlockCounts = ({ blocks }) => {
+  const count = (type) => blocks.filter((b) => b.type === type).length;
+  const items = [
+    { type: 'hundred', label: '백', src: '/image/hundred.webp', size: 'w-5 h-5' },
+    { type: 'ten', label: '십', src: '/image/ten.webp', size: 'w-4 h-4' },
+    { type: 'one', label: '일', src: '/image/one.webp', size: 'w-3 h-3' },
+  ];
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {items.map((it) => (
+        <span
+          key={it.type}
+          className="inline-flex items-center gap-1 rounded-full bg-white border-2 border-pink-200 px-2.5 py-0.5 text-sm sm:text-base font-semibold text-slate-800"
+        >
+          <img src={it.src} alt="" className={`${it.size} object-contain`} />
+          {it.label} <span className="text-lg sm:text-xl font-extrabold text-pink-700">{count(it.type)}</span>개
+        </span>
+      ))}
     </div>
   );
 };
@@ -233,6 +272,8 @@ const SourceArea = ({ blocks, onBlockClick, isHammerMode }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: 'source',
   });
+  const total = blocks.reduce((sum, b) => sum + getBlockValue(b.type), 0);
+  const flash = useChangedFlash('source', total);
 
   return (
     <div
@@ -241,11 +282,20 @@ const SourceArea = ({ blocks, onBlockClick, isHammerMode }) => {
         isOver ? 'border-sky-500 bg-sky-50' : 'border-pastelPink'
       }`}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="text-lg sm:text-xl font-bold text-pink-700">수모형 상자</span>
         <span className="text-xs sm:text-sm text-pink-700/80">
           위 블록을 아래 접시에 골고루 나누어 담아 보세요.
         </span>
+      </div>
+      <div className="flex items-center gap-3 sm:gap-4 flex-wrap rounded-xl bg-pink-50 border-2 border-pink-200 px-3 py-2">
+        <span className="inline-flex items-baseline gap-2" aria-live="polite">
+          <span className="text-base sm:text-lg font-bold text-pink-800">남은 수</span>
+          <span className={`text-3xl sm:text-4xl font-extrabold text-pink-700 tabular-nums ${flash ? 'count-flash' : ''}`}>
+            {total}
+          </span>
+        </span>
+        <BlockCounts blocks={blocks} />
       </div>
       <div className="flex flex-wrap gap-2 sm:gap-3">
         {blocks.map((b) => (
@@ -901,6 +951,7 @@ const App = () => {
               id={`plate-${index}`}
               label={`${index + 1}번 접시`}
               highlight={everySameAndCorrect && plate.total === quotient}
+              total={plate.total}
             >
               {plate.items.map((b) => (
                 <Block
@@ -911,12 +962,6 @@ const App = () => {
                   isHammerMode={isHammerMode}
                 />
               ))}
-              <div className="mt-2 text-xs sm:text-sm text-slate-700">
-                합계:{' '}
-                <span className="font-bold text-slate-900">
-                  {plate.total}
-                </span>
-              </div>
             </Plate>
           ))}
         </div>
