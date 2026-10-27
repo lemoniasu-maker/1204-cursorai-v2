@@ -296,7 +296,40 @@
     .result.ok { color: #047857; }
     .result.bad { color: #be123c; }
     .my-answer { background: #fef3c7; border-radius: 12px; padding: 0.45rem 0.7rem; font-size: 0.95rem; color: #92400e; }
-    .solve-stat { font-size: 0.88rem; color: var(--text-light); }
+    .solve-stat { font-size: 0.88rem; color: var(--text-light); display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .like-btn {
+      border: 2px solid #fecdd3; background: white; color: #be123c; border-radius: 999px;
+      padding: 0.2rem 0.75rem; font-size: 1rem; cursor: pointer; font-family: inherit; min-height: 36px;
+    }
+    .like-btn:hover { background: #fff1f2; }
+    .like-btn.on { background: #ffe4e6; border-color: #fb7185; }
+    .like-count { color: #be123c; font-size: 1rem; }
+    .likers { font-size: 0.85rem; color: #9f1239; background: #fff1f2; border-radius: 10px; padding: 0.3rem 0.6rem; }
+    .head-tools { margin-left: auto; display: flex; gap: 0.2rem; align-items: center; }
+    .zoom-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.1rem 0.3rem; border-radius: 8px; }
+    .zoom-btn:hover { background: #eff6ff; }
+
+    /* 확대보기: 문제 하나만 화면 가득 */
+    .zoom-view {
+      position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, 0.6);
+      display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+    }
+    .zoom-card {
+      position: relative; background: white; border-radius: 28px; border: 5px solid var(--pastel-blue);
+      width: min(1100px, 100%); max-height: 100%; overflow-y: auto; padding: 2rem 2.5rem;
+      display: flex; flex-direction: column; gap: 1.2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+    .zoom-head { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; padding-right: 3rem; }
+    .zoom-head .who { font-size: 1.6rem; }
+    .zoom-head .tag { font-size: 1.05rem; padding: 0.25rem 0.8rem; }
+    .zoom-question { font-size: clamp(1.6rem, 4vw, 2.8rem); line-height: 1.6; color: var(--text-dark); word-break: keep-all; overflow-wrap: anywhere; }
+    .zoom-likes { font-size: 1.6rem; color: #be123c; }
+    .zoom-close {
+      position: absolute; top: 1rem; right: 1rem; width: 48px; height: 48px; border-radius: 50%;
+      border: none; background: #f1f5f9; font-size: 1.5rem; cursor: pointer;
+    }
+    .zoom-close:hover { background: #e2e8f0; }
+    body.zooming { overflow: hidden; }
     .comments { display: flex; flex-direction: column; gap: 0.3rem; }
     .comment { background: #f1f5f9; border-radius: 12px; padding: 0.35rem 0.6rem; font-size: 0.95rem; color: var(--text-medium); display: flex; gap: 0.4rem; align-items: flex-start; word-break: keep-all; overflow-wrap: anywhere; }
     .comment b { color: var(--text-dark); white-space: nowrap; }
@@ -314,6 +347,8 @@
 
     @media (max-width: 600px) {
       body { padding: 0.5rem; font-size: 17px; }
+      .zoom-view { padding: 0.75rem; }
+      .zoom-card { padding: 1.4rem 1.2rem; }
       .section, .board-top { padding: 1rem; }
       .maker { margin: 0.75rem; padding: 0.9rem; }
       .mode-cards { grid-template-columns: 1fr; }
@@ -388,8 +423,18 @@
       <button class="btn btn-soft btn-small" id="backBtn" type="button">← 게시판 목록</button>
       <h2 id="boardTitle"><span class="sub" id="boardSub"></span></h2>
       <button class="btn btn-primary" id="makeBtn" type="button">✏️ 문제 만들기</button>
+      <button class="btn btn-soft btn-small hidden" id="sortBtn" type="button">🕒 최신순</button>
       <button class="btn btn-soft btn-small hidden" id="presentBtn" type="button">🖥️ 크게 보기</button>
       <button class="btn btn-soft btn-small hidden" id="lockBtn" type="button">🔒 잠그기</button>
+    </div>
+    <!-- 확대보기 (문제 하나만 크게) -->
+    <div class="zoom-view hidden" id="zoomView" role="dialog" aria-modal="true" aria-labelledby="zoomQuestion">
+      <div class="zoom-card">
+        <button class="zoom-close" id="zoomCloseBtn" type="button" title="닫기 (Esc)" aria-label="닫기">✕</button>
+        <div class="zoom-head"><span class="who" id="zoomWho"></span><span class="tag" id="zoomTag"></span></div>
+        <div class="zoom-question" id="zoomQuestion"></div>
+        <div class="zoom-likes" id="zoomLikes"></div>
+      </div>
     </div>
     <div class="lock-banner hidden" id="lockBanner">🔒 이 게시판은 잠겨 있어요. 문제를 보고 함께 생각해 봐요.</div>
 

@@ -26,8 +26,14 @@ const state = {
   results: {},          // 이 화면에서 채점한 결과 { postId: {correct, text} }
   maker: { item: '', unit: '', total: null, mode: null, divisor: null, target: '' },
   pollTimer: null,
-  aiOn: false
+  aiOn: false,
+  sort: 'new',          // 'new' 최신순 | 'like' 좋아요순
+  zoomId: null          // 확대보기 중인 문제
 };
+
+// 좋아요 정보 (선생님은 누른 번호 목록, 학생은 개수만 받음)
+const likeCount = p => (Array.isArray(p.likes) ? p.likes.length : p.likeCount || 0);
+const likedByMe = p => (Array.isArray(p.likes) ? p.likes.includes(state.me) : Boolean(p.likedByMe));
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -161,6 +167,7 @@ async function openBoard(id) {
   state.rev = null;
   state.seenPosts = new Set();
   state.results = {};
+  closeZoom();
   $('entryView').classList.add('hidden');
   $('boardView').classList.remove('hidden');
   $('cards').innerHTML = '<p class="empty">불러오는 중이에요...</p>';
@@ -172,6 +179,7 @@ async function openBoard(id) {
 
 function backToList() {
   stopPolling();
+  closeZoom();
   state.board = null;
   document.body.classList.remove('present');
   $('boardView').classList.add('hidden');
@@ -205,6 +213,8 @@ function applyBoard(data) {
   $('lockBtn').textContent = data.locked ? '🔓 다시 열기' : '🔒 잠그기';
   if (data.locked) closeMaker();
   renderCards(firstLoad);
+  renderSortBtn();
+  if (state.zoomId) renderZoom();
 }
 
 // 카드 다시 그리기 (학생이 입력 중이던 값과 커서는 유지)
@@ -221,13 +231,24 @@ function renderCards(firstLoad) {
     return;
   }
 
-  $('cards').innerHTML = [...posts].reverse().map(p => {
+  const ordered = [...posts].reverse(); // 최신순
+  if (state.sort === 'like') ordered.sort((a, b) => likeCount(b) - likeCount(a)); // 같은 수면 최신순 유지
+
+  $('cards').innerHTML = ordered.map(p => {
     const mine = p.number === state.me;
     const isNew = !firstLoad && !state.seenPosts.has(p.id);
     const correctCount = p.solves.filter(s => s.correct).length;
     const mySolve = p.solves.find(s => s.number === state.me);
     const result = state.results[p.id];
     const showAnswer = mine || teacher;
+    const likes = likeCount(p);
+    const liked = likedByMe(p);
+    const canLike = !locked && state.me && !mine;
+    const likeBtn = canLike
+      ? `<button class="like-btn ${liked ? 'on' : ''}" data-like="${esc(p.id)}" data-liked="${liked ? 1 : 0}" type="button" aria-pressed="${liked}" title="${liked ? '좋아요 취소' : '좋아요'}">${liked ? '❤️' : '🤍'} ${likes}</button>`
+      : `<span class="like-count" title="${mine ? '내 문제에는 누를 수 없어요' : '좋아요'}">❤️ ${likes}</span>`;
+    const likers = teacher && Array.isArray(p.likes) && p.likes.length
+      ? `<div class="likers">❤️ 누른 친구: ${p.likes.map(n => `${n}번`).join(', ')}</div>` : '';
 
     let answerArea = '';
     if (showAnswer && p.quotient !== undefined) {
@@ -257,11 +278,15 @@ function renderCards(firstLoad) {
         <span class="who">🙋 ${p.number}번의 문제</span>
         <span class="tag ${p.mode}">${p.mode === 'share' ? '똑같이 나누어 주기' : '몇 개씩 묶어 담기'}</span>
         ${mine ? '<span class="tag me">내 문제</span>' : ''}
-        ${teacher ? `<button class="del" style="margin-left:auto" data-del-post="${esc(p.id)}" title="문제 삭제" type="button">🗑</button>` : ''}
+        <span class="head-tools">
+          <button class="zoom-btn" data-zoom="${esc(p.id)}" title="이 문제만 크게 보기" type="button">🔍</button>
+          ${teacher ? `<button class="del" data-del-post="${esc(p.id)}" title="문제 삭제" type="button">🗑</button>` : ''}
+        </span>
       </div>
       <div class="card-question">${esc(p.question)}</div>
       ${answerArea}
-      <div class="solve-stat">✅ ${correctCount}명 맞힘 · 💬 댓글 ${p.comments.length}개</div>
+      <div class="solve-stat">${likeBtn}<span>✅ ${correctCount}명 맞힘 · 💬 댓글 ${p.comments.length}개</span></div>
+      ${likers}
       ${comments ? `<div class="comments">${comments}</div>` : ''}
       ${commentInput}
     </article>`;
@@ -272,6 +297,45 @@ function renderCards(firstLoad) {
     const el = document.querySelector(`#cards [data-keep="${CSS.escape(focused)}"]`);
     if (el) { el.focus({ preventScroll: true }); try { if (caret != null) el.setSelectionRange(caret, caret); } catch { /* 숫자 칸 */ } }
   }
+}
+
+async function toggleLike(postId, liked) {
+  try {
+    const data = await api('POST', { action: 'like', boardId: state.board.id, postId, number: state.me, liked });
+    applyBoard(data);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function renderSortBtn() {
+  const btn = $('sortBtn');
+  btn.classList.toggle('hidden', !state.board?.posts?.length);
+  btn.textContent = state.sort === 'like' ? '❤️ 좋아요순' : '🕒 최신순';
+  btn.title = state.sort === 'like' ? '눌러서 최신순으로 보기' : '눌러서 좋아요 많은 순으로 보기';
+}
+
+// ===== 확대보기: 문제 하나만 크게 =====
+function renderZoom() {
+  const p = state.board?.posts?.find(x => x.id === state.zoomId);
+  if (!p) { closeZoom(); return; }
+  $('zoomWho').textContent = `🙋 ${p.number}번의 문제`;
+  $('zoomTag').textContent = p.mode === 'share' ? '똑같이 나누어 주기' : '몇 개씩 묶어 담기';
+  $('zoomTag').className = `tag ${p.mode}`;
+  $('zoomQuestion').textContent = p.question;
+  $('zoomLikes').textContent = `❤️ ${likeCount(p)}`;
+}
+
+function openZoom(postId) {
+  state.zoomId = postId;
+  renderZoom();
+  $('zoomView').classList.remove('hidden');
+  document.body.classList.add('zooming');
+  $('zoomCloseBtn').focus();
+}
+
+function closeZoom() {
+  state.zoomId = null;
+  $('zoomView')?.classList.add('hidden');
+  document.body.classList.remove('zooming');
 }
 
 async function solve(postId) {
@@ -571,11 +635,23 @@ function setupEvents() {
     $('presentBtn').textContent = on ? '🖥️ 보통 보기' : '🖥️ 크게 보기';
   };
   $('lockBtn').onclick = () => setLock(state.board.id, !state.board.locked);
+  $('sortBtn').onclick = () => {
+    state.sort = state.sort === 'like' ? 'new' : 'like';
+    renderCards(true);
+    renderSortBtn();
+  };
+
+  // 확대보기 닫기: ✕ 버튼, 바깥 누르기, Esc
+  $('zoomCloseBtn').onclick = closeZoom;
+  $('zoomView').addEventListener('click', e => { if (e.target === $('zoomView')) closeZoom(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.zoomId) closeZoom(); });
 
   $('cards').addEventListener('click', e => {
     const t = e.target.closest('button');
     if (!t) return;
     if (t.dataset.solve) solve(t.dataset.solve);
+    if (t.dataset.like) toggleLike(t.dataset.like, t.dataset.liked !== '1');
+    if (t.dataset.zoom) openZoom(t.dataset.zoom);
     if (t.dataset.comment) addComment(t.dataset.comment);
     if (t.dataset.delPost) teacherDelete('post', t.dataset.delPost);
     if (t.dataset.delComment) teacherDelete('comment', t.dataset.post, t.dataset.delComment);

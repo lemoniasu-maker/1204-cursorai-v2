@@ -9,6 +9,7 @@
 //   log/<게시판>/p/<번호>-<id>           학생이 만든 문제
 //   log/<게시판>/s/<문제id>/<번호>-<id>  풀이 기록
 //   log/<게시판>/c/<문제id>/<id>         댓글
+//   log/<게시판>/l/<문제id>/<번호>        좋아요 (한 사람당 한 칸, 취소하면 칸을 지움)
 //   log/<게시판>/d/<id>                  선생님 삭제 표시 (원본은 남김)
 //   snap/<게시판>                        위 기록을 모아 둔 사본 (읽기를 빠르게 하는 용도, 없어져도 다시 만듦)
 
@@ -63,12 +64,19 @@ async function getMeta(store, boardId) {
 async function loadBoard(store, meta, { clientRev } = {}) {
   const prefix = `log/${meta.id}/`;
   const keys = await listKeys(store, prefix);
-  const rev = `${keys.length}-${meta.updatedAt || meta.createdAt}`;
+  let h = 0;
+  for (const k of keys) for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) | 0;
+  const rev = `${keys.length}-${(h >>> 0).toString(36)}-${meta.updatedAt || meta.createdAt}`;
   if (clientRev && clientRev === rev) return { unchanged: true, rev };
 
   const snap = (await store.get(`snap/${meta.id}`, { type: 'json' })) || { events: {} };
+  const keySet = new Set(keys);
+  let changed = false;
+  for (const k of Object.keys(snap.events)) {
+    if (!keySet.has(k)) { delete snap.events[k]; changed = true; } // 취소된 좋아요
+  }
   const missing = keys.filter(k => !(k in snap.events));
-  if (missing.length) {
+  if (missing.length || changed) {
     const loaded = await Promise.all(missing.map(k => store.get(k, { type: 'json' })));
     missing.forEach((k, i) => { if (loaded[i]) snap.events[k] = loaded[i]; });
     await store.setJSON(`snap/${meta.id}`, snap); // 사본 갱신 (경쟁해도 원본 기록은 그대로라 안전)
@@ -78,12 +86,14 @@ async function loadBoard(store, meta, { clientRev } = {}) {
   const posts = new Map();
   const solves = [];
   const comments = [];
+  const likes = [];
   for (const [key, ev] of Object.entries(snap.events)) {
     const type = key.slice(prefix.length).split('/')[0];
     if (type === 'd') deleted.add(ev.targetId);
-    else if (type === 'p') posts.set(ev.id, { ...ev, solves: {}, comments: [] });
+    else if (type === 'p') posts.set(ev.id, { ...ev, solves: {}, comments: [], likes: [] });
     else if (type === 's') solves.push(ev);
     else if (type === 'c') comments.push(ev);
+    else if (type === 'l') likes.push(ev);
   }
   for (const s of solves.sort((a, b) => a.at - b.at)) {
     const p = posts.get(s.postId);
@@ -96,9 +106,13 @@ async function loadBoard(store, meta, { clientRev } = {}) {
   for (const c of comments) {
     if (!deleted.has(c.id) && posts.get(c.postId)) posts.get(c.postId).comments.push(c);
   }
+  for (const l of likes) {
+    const p = posts.get(l.postId);
+    if (p && !p.likes.includes(l.number)) p.likes.push(l.number);
+  }
   const list = [...posts.values()]
     .filter(p => !deleted.has(p.id))
-    .map(p => ({ ...p, solves: Object.values(p.solves), comments: p.comments.sort((a, b) => a.at - b.at) }))
+    .map(p => ({ ...p, solves: Object.values(p.solves), comments: p.comments.sort((a, b) => a.at - b.at), likes: p.likes.sort((a, b) => a - b) }))
     .sort((a, b) => a.createdAt - b.createdAt);
 
   return { ...meta, rev, posts: list };
@@ -110,8 +124,12 @@ function forViewer(board, { teacher, me }) {
   return {
     ...board,
     posts: board.posts.map(p => {
-      if (teacher || p.number === me) return p;
-      const { quotient, remainder, ...rest } = p;
+      if (teacher) return p;
+      // 학생에게는 좋아요 수와 '내가 눌렀는지'만 보냄 (누가 눌렀는지는 선생님만)
+      const { likes = [], ...base } = p;
+      const view = { ...base, likeCount: likes.length, likedByMe: likes.includes(me) };
+      if (p.number === me) return view;
+      const { quotient, remainder, ...rest } = view;
       return rest;
     })
   };
@@ -225,6 +243,14 @@ export default async (req, context) => {
         });
       }
       return json(result);
+    }
+
+    if (action === 'like') {
+      if (post.number === number) throw new UserError('내 문제에는 좋아요를 누를 수 없어요.');
+      const key = `log/${meta.id}/l/${post.id}/${number}`;
+      if (body.liked) await store.setJSON(key, { postId: post.id, number, at: Date.now() });
+      else await store.delete(key);
+      return json(forViewer(await loadBoard(store, meta), { teacher, me: number }));
     }
 
     if (action === 'comment') {
