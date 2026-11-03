@@ -116,6 +116,7 @@ function renderTeacherBoards() {
       <span>${esc(b.date)} · ${esc(lessonOf(b.level).lesson)} · <b>${esc(b.title)}</b> ${b.locked ? '🔒' : '🟢'}</span>
       <button class="btn btn-soft btn-small" data-open="${esc(b.id)}" type="button">보기</button>
       <button class="btn btn-small ${b.locked ? 'btn-green' : 'btn-pink'}" data-lock="${esc(b.id)}" data-locked="${b.locked ? 1 : 0}" type="button">${b.locked ? '다시 열기' : '잠그기'}</button>
+      <button class="btn btn-soft btn-small" data-delete="${esc(b.id)}" type="button" title="게시판 삭제">🗑️ 삭제</button>
     </div>`).join('') || '<p class="muted">아직 게시판이 없어요.</p>';
 }
 
@@ -155,6 +156,30 @@ async function setLock(boardId, locked) {
     await api('POST', { action: 'setLock', boardId, locked });
     await loadBoardList();
     if (state.board?.id === boardId) await refreshBoard(true);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// 게시판 완전 삭제 (되돌릴 수 없으므로 문제 수를 보여 주고 한 번 더 확인)
+async function deleteBoard(boardId) {
+  const b = state.boards.find(x => x.id === boardId);
+  if (!b) return;
+  let count = '?';
+  try { count = (await api('GET', { board: boardId, me: 0 })).posts.length; } catch { /* 개수를 못 읽어도 삭제는 가능 */ }
+  const ok = await Swal.fire({
+    title: '게시판을 삭제할까요?',
+    html: `<b>${esc(b.date)} · ${esc(lessonOf(b.level).lesson)} · ${esc(b.title)}</b><br>학생 문제 <b>${count}개</b>와 풀이·댓글·좋아요가 모두 지워져요.<br><span style="color:#e5484d"><b>삭제하면 되돌릴 수 없어요.</b></span>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: '삭제하기',
+    cancelButtonText: '취소',
+    confirmButtonColor: '#e5484d',
+    focusCancel: true
+  });
+  if (!ok.isConfirmed) return;
+  try {
+    await api('POST', { action: 'deleteBoard', boardId });
+    if (state.board?.id === boardId) backToList(); else await loadBoardList();
+    toast('게시판을 삭제했어요.', 'success');
   } catch (e) { toast(e.message, 'error'); }
 }
 
@@ -199,6 +224,11 @@ async function refreshBoard(force = false) {
     if (data.unchanged) return;
     applyBoard(data);
   } catch (e) {
+    if (e.message === '게시판을 찾을 수 없어요.') { // 선생님이 게시판을 삭제함
+      backToList();
+      toast('이 게시판은 선생님이 정리했어요. 다른 게시판을 골라 주세요.');
+      return;
+    }
     if (force) $('cards').innerHTML = `<p class="empty">${esc(e.message)}</p>`;
   }
 }
@@ -627,6 +657,8 @@ function setupEvents() {
   $('teacherBoards').addEventListener('click', e => {
     const open = e.target.closest('[data-open]');
     const lock = e.target.closest('[data-lock]');
+    const del = e.target.closest('[data-delete]');
+    if (del) return deleteBoard(del.dataset.delete);
     if (open) openBoard(open.dataset.open);
     if (lock) setLock(lock.dataset.lock, lock.dataset.locked !== '1');
   });
