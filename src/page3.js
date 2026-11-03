@@ -12,8 +12,11 @@ const LESSONS = [
   { lesson: '4차시', tip: '몇십몇을 나누어요. 십의 자리와 일의 자리가 모두 남김없이 나누어떨어지게 만들어요. (예: 48 ÷ 4)' },
   { lesson: '5차시', tip: '몇십몇을 나누어요. 십의 자리에서 남는 것이 일의 자리로 내려가고, 마지막에는 남는 것이 없게 만들어요. (예: 72 ÷ 4)' },
   { lesson: '9차시', tip: '세 자리 수를 나누어요. 백의 자리 수가 나누는 수와 같거나 크게 만들어요(몫이 세 자리). 남는 것이 있어도 돼요. (예: 639 ÷ 3)' },
-  { lesson: '10차시', tip: '세 자리 수를 나누어요. 백의 자리 수가 나누는 수보다 작게 만들어요(몫이 두 자리). 남는 것이 있어도 돼요. (예: 250 ÷ 5)' }
+  { lesson: '10차시', tip: '세 자리 수를 나누어요. 백의 자리 수가 나누는 수보다 작게 만들어요(몫이 두 자리). 남는 것이 있어도 돼요. (예: 250 ÷ 5)' },
+  { lesson: '6~7차시', tip: '두 자리 수를 나누어요. 십의 자리 수가 나누는 수와 같거나 크게 하고(몫이 두 자리), 마지막에 남는 것이 꼭 있게 만들어요. (예: 47 ÷ 3)' }
 ];
+// 선생님 화면 차시 선택 목록에 보일 순서 (규칙 번호는 그대로 두고 보이는 순서만 차시 순으로)
+const LEVEL_ORDER = [0, 1, 2, 3, 6, 4, 5];
 
 // ===== 상태 =====
 const state = {
@@ -455,8 +458,9 @@ function explainRule(level, n, d) {
   const t = Math.floor(n / 10) % 10, o = n % 10, h = Math.floor(n / 100);
   if (level <= 1 && !(n >= 10 && n <= 90 && o === 0)) return '이 시간에는 몇십(10, 20, … 90)을 나누어요.';
   if ((level === 2 || level === 3) && !(n >= 11 && n <= 99 && o !== 0)) return '이 시간에는 몇십몇(예: 36, 72)을 나누어요. 일의 자리가 0이 아니게 해 봐요.';
-  if (level >= 4 && !(n >= 100 && n <= 999)) return '이 시간에는 세 자리 수(100~999)를 나누어요.';
-  if (level <= 3 && t < d) return `몫이 두 자리 수가 되려면 십의 자리 수(${t})가 ${d}보다 크거나 같아야 해요.`;
+  if ((level === 4 || level === 5) && !(n >= 100 && n <= 999)) return '이 시간에는 세 자리 수(100~999)를 나누어요.';
+  if (level === 6 && !(n >= 10 && n <= 99)) return '이 시간에는 두 자리 수(10~99)를 나누어요.';
+  if ((level <= 3 || level === 6) && t < d) return `몫이 두 자리 수가 되려면 십의 자리 수(${t})가 ${d}보다 크거나 같아야 해요.`;
   if (level === 0 && t % d !== 0) return `십의 자리 ${j(t, '을', '를')} ${j(d, '으로', '로')} 나누면 남는 것이 생겨요. 남김없이 나누어떨어지는 수로 바꿔 볼까요?`;
   if (level === 1 && t % d === 0) return '이건 내림이 없는 나눗셈이에요. 십의 자리를 나눌 때 남는 것이 생기는 수로 바꿔 볼까요?';
   if (level === 2 && t % d !== 0) return `십의 자리 ${j(t, '을', '를')} ${j(d, '으로', '로')} 나누면 남는 것이 생겨요. 십의 자리도 남김없이 나누어떨어지게 해 봐요.`;
@@ -464,6 +468,7 @@ function explainRule(level, n, d) {
   if (level === 3 && t % d === 0) return '이건 내림이 없는 나눗셈이에요. 십의 자리를 나눌 때 남는 것이 생기는 수로 바꿔 볼까요?';
   if ((level === 1 || level === 3) && n % d !== 0) return `${n} ÷ ${d}는 마지막에 ${j(n % d, '이', '가')} 남아요. 남는 것이 없게 바꿔 볼까요?`;
   if (level === 4 && h < d) return `백의 자리 ${j(h, '이', '가')} ${d}보다 작아서 몫이 두 자리가 돼요. 이 시간에는 몫이 세 자리가 되게 만들어요.`;
+  if (level === 6 && n % d === 0) return `${n} ÷ ${j(d, '은', '는')} 남는 것 없이 나누어떨어져요. 마지막에 남는 것이 생기는 수로 바꿔 볼까요?`;
   if (level === 5 && h >= d) return `백의 자리 ${j(h, '이', '가')} ${d}보다 크거나 같아서 몫이 세 자리가 돼요. 이 시간에는 몫이 두 자리가 되게 만들어요.`;
   return '이 시간에 만드는 나눗셈과 맞지 않아요.';
 }
@@ -609,7 +614,7 @@ function setupEvents() {
   $('teacherLoginBtn').onclick = () => teacherLogin($('teacherPwInput').value);
   $('teacherPwInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('teacherLoginBtn').click(); });
   $('teacherLogoutBtn').onclick = teacherLogout;
-  $('levelSelect').innerHTML = LEVEL_RULES.map((r, i) => `<option value="${i}">${LESSONS[i].lesson} ${r.name}</option>`).join('');
+  $('levelSelect').innerHTML = LEVEL_ORDER.map(i => `<option value="${i}">${LESSONS[i].lesson} ${LEVEL_RULES[i].name}</option>`).join('');
   $('dateInput').value = today();
   $('createBoardBtn').onclick = async () => {
     try {
