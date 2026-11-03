@@ -12,6 +12,8 @@
 //   log/<게시판>/l/<문제id>/<번호>        좋아요 (한 사람당 한 칸, 취소하면 칸을 지움)
 //   log/<게시판>/d/<id>                  선생님 삭제 표시 (원본은 남김)
 //   snap/<게시판>                        위 기록을 모아 둔 사본 (읽기를 빠르게 하는 용도, 없어져도 다시 만듦)
+//
+// 게시판 삭제(deleteBoard)는 위 칸을 모두 영구히 지웁니다. 되돌릴 수 없습니다.
 
 import { getStore } from '@netlify/blobs';
 import { LEVEL_RULES } from '../../src/divisionRules.js';
@@ -171,7 +173,7 @@ export default async (req, context) => {
       return teacher ? json({ ok: true }) : json({ ok: false, error: '선생님 비밀번호가 맞지 않아요.' }, 401);
     }
 
-    if (['createBoard', 'setLock', 'renameBoard', 'deletePost', 'deleteComment'].includes(action)) {
+    if (['createBoard', 'setLock', 'renameBoard', 'deletePost', 'deleteComment', 'deleteBoard'].includes(action)) {
       if (!teacher) return json({ error: '선생님 비밀번호가 맞지 않아요.' }, 401);
 
       if (action === 'createBoard') {
@@ -188,6 +190,17 @@ export default async (req, context) => {
       }
 
       const meta = await getMeta(store, body.boardId);
+      if (action === 'deleteBoard') {
+        // 목록에서 먼저 빼고(학생 화면에서 바로 사라지게), 기록·사본·정보 칸을 모두 지움
+        const index = (await store.get('index', { type: 'json' })) || { boards: [] };
+        index.boards = index.boards.filter(b => b.id !== meta.id);
+        await store.setJSON('index', index);
+        const keys = await listKeys(store, `log/${meta.id}/`);
+        for (let i = 0; i < keys.length; i += 20) await Promise.all(keys.slice(i, i + 20).map(k => store.delete(k)));
+        await store.delete(`snap/${meta.id}`);
+        await store.delete(`meta/${meta.id}`);
+        return json({ ok: true, deleted: meta.id, removedRecords: keys.length });
+      }
       if (action === 'setLock') { meta.locked = Boolean(body.locked); await saveMeta(store, meta); }
       if (action === 'renameBoard') { meta.title = cleanText(body.title, 40) || meta.title; await saveMeta(store, meta); }
       if (action === 'deletePost' || action === 'deleteComment') {
