@@ -22,37 +22,56 @@ const hasBatchim = (n) => {
 const josa = (n, withBatchim, withoutBatchim) => `${n}${hasBatchim(n) ? withBatchim : withoutBatchim}`;
 
 // 어림한 값이 잘 맞는지 코드로 판단하기
-// - 몫이 두 자리 이상: 실제 몫(나머지 포함 소수)과의 차이가 10보다 작으면 잘한 어림
-//   예) 95 ÷ 2 = 47.5 → 40, 50 모두 잘한 어림 / 30, 60은 아쉬운 어림
+// - 몫이 세 자리: 백의 자리끼리 나눈 몇백(예: 513÷5 → 100)이거나, 실제 몫과의 차이가 75보다 작으면 잘한 어림
+//   예) 513÷5 → 100 잘함, 200 아쉬움 / 862÷2 → 400, 500 모두 잘함
+// - 몫이 두 자리: 실제 몫과의 차이가 10보다 작으면 잘한 어림 (예: 95÷2 → 40, 50 잘함)
 // - 몫이 한 자리: 정답과의 차이가 2 이하이면 잘한 어림(기존 기준 유지)
 const evaluateEstimate = (dividend, divisor, estimate) => {
   const exactQuotient = dividend / divisor;
   const quotient = Math.floor(exactQuotient);
   const product = estimate * divisor;
-  const isGood = quotient < 10
-    ? Math.abs(estimate - quotient) <= 2
-    : Math.abs(estimate - exactQuotient) < 10;
+  const isGood = quotient >= 100
+    ? estimate === Math.floor(quotient / 100) * 100 || Math.abs(estimate - exactQuotient) < 75
+    : quotient >= 10
+      ? Math.abs(estimate - exactQuotient) < 10
+      : Math.abs(estimate - quotient) <= 2;
   const direction = product > dividend ? 'bigger' : product < dividend ? 'smaller' : 'same';
-  return { isGood, product, direction };
+  // 곱이 나누어지는 수보다 작지만 그 차이가 나누는 수보다 작으면, 어림한 수가 곧 몫 (나머지만 남음)
+  const exactWithRemainder = direction === 'smaller' && dividend - product < divisor;
+  const unit = quotient >= 100 ? '몇백' : quotient >= 10 ? '몇십' : '수';
+  // 곱과 나누어지는 수의 차이가 나누어지는 수의 30%를 넘으면 '조금' 대신 '꽤'
+  const degree = Math.abs(product - dividend) > dividend * 0.3 ? '꽤' : '조금';
+  return { isGood, product, direction, exactWithRemainder, unit, degree };
 };
 
+// '~이에요/~예요' 고르기
+const ieyo = (n) => `${n}${hasBatchim(n) ? '이에요' : '예요'}`;
+
 // AI 없이도 보여 줄 기본 피드백 문장
+// 순서: ① 어림한 수 × 나누는 수 ② 나누어지는 수와 비교 ③ 몫 예상
 const buildEstimateFeedback = (dividend, divisor, estimate, result) => {
-  const { isGood, product, direction } = result;
-  const calc = `${estimate} × ${divisor} = ${product}`;
+  const { isGood, product, direction, exactWithRemainder, unit, degree } = result;
+  const calc = `${divisor} × ${estimate} = ${ieyo(product)}.`;
+  if (direction === 'same') {
+    return `정말 잘 어림했어요! ${calc} ${josa(dividend, '과', '와')} 똑같아요. 그러니까 몫은 바로 ${ieyo(estimate)}. 👍`;
+  }
   if (isGood) {
-    if (direction === 'bigger') {
-      return `몇십으로 잘 어림했어요! ${calc}${hasBatchim(product) ? '이니까' : '니까'} 몫은 ${josa(estimate, '보다', '보다')} 조금 작겠네요. 👍`;
+    if (exactWithRemainder) {
+      const diff = dividend - product;
+      return `정말 잘 어림했어요! ${calc} ${josa(product, '은', '는')} ${dividend}보다 ${diff} 작은데, ${josa(diff, '은', '는')} ${divisor}보다 작아요. 그러니까 몫은 ${josa(estimate, '이고', '고')} ${josa(diff, '이', '가')} 남겠죠? 👍`;
     }
+    // 어림한 수가 딱 몇백(몇십)일 때만 '몇백으로'라고 말함 (예: 120은 그냥 '잘 어림했어요')
+    const unitStep = unit === '몇백' ? 100 : unit === '몇십' ? 10 : 0;
+    const praise = unitStep && estimate % unitStep === 0 ? `${unit}으로 잘 어림했어요!` : '잘 어림했어요!';
     if (direction === 'smaller') {
-      return `몇십으로 잘 어림했어요! ${calc}${hasBatchim(product) ? '이니까' : '니까'} 몫은 ${josa(estimate, '보다', '보다')} 조금 크겠네요. 👍`;
+      return `${praise} ${calc} ${josa(product, '은', '는')} ${dividend}보다 ${degree} 작아요. 그러니까 몫은 ${estimate}보다 ${degree} 크겠죠? 👍`;
     }
-    return `정말 잘 어림했어요! ${calc}, ${josa(dividend, '과', '와')} 똑같아요. 👍`;
+    return `${praise} ${calc} ${josa(product, '은', '는')} ${dividend}보다 ${degree} 커요. 그러니까 몫은 ${estimate}보다 ${degree} 작겠죠? 👍`;
   }
   if (direction === 'bigger') {
-    return `아쉽네요. ${calc}, ${josa(dividend, '보다', '보다')} 너무 커요. ${josa(estimate, '보다', '보다')} 작은 몇십으로 다시 생각해 볼까요? 😊`;
+    return `아쉽네요. ${calc} ${josa(product, '은', '는')} ${dividend}보다 너무 커요. ${estimate}보다 작은 ${unit}으로 다시 생각해 볼까요? 😊`;
   }
-  return `아쉽네요. ${calc}, ${josa(dividend, '보다', '보다')} 너무 작아요. ${josa(estimate, '보다', '보다')} 큰 몇십으로 다시 생각해 볼까요? 😊`;
+  return `아쉽네요. ${calc} ${josa(product, '은', '는')} ${dividend}보다 너무 작아요. ${estimate}보다 큰 ${unit}으로 다시 생각해 볼까요? 😊`;
 };
 
 // AI 피드백 요청 함수 (판단은 코드가 하고, AI는 말투만 다듬음)
@@ -61,23 +80,35 @@ const getAIFeedback = async (dividend, divisor, estimate, result) => {
     return null;
   }
 
-  const { isGood, product, direction } = result;
+  const { isGood, product, direction, exactWithRemainder, unit, degree } = result;
   const compareText = direction === 'bigger' ? '보다 큽니다' : direction === 'smaller' ? '보다 작습니다' : '와 같습니다';
+  const howMuch = isGood ? degree : '너무';
+
+  let judgement;
+  if (direction === 'same') {
+    judgement = `잘한 어림입니다. 곱이 나누어지는 수와 같으니 몫이 ${estimate}이라고 칭찬해 주세요.`;
+  } else if (isGood && exactWithRemainder) {
+    judgement = `잘한 어림입니다. ${product}는 ${dividend}보다 ${dividend - product} 작고, 그 차이가 나누는 수 ${divisor}보다 작으니 몫은 ${estimate}이고 조금 남는다고 말해 주세요.`;
+  } else if (isGood) {
+    judgement = `잘한 어림입니다. 알맞게 어림했다고 칭찬하고, ${product}는 ${dividend}보다 ${degree} ${direction === 'bigger' ? '크니까' : '작으니까'} 몫은 ${estimate}보다 ${degree} ${direction === 'bigger' ? '작을' : '클'} 것이라고 말해 주세요.`;
+  } else {
+    judgement = `아쉬운 어림입니다. "아쉽네요."로 시작하고, ${product}는 ${dividend}보다 너무 ${direction === 'bigger' ? '크다' : '작다'}는 점을 짚으며 ${estimate}보다 ${direction === 'bigger' ? '작은' : '큰'} ${unit}으로 다시 생각해 보라고 힌트를 주세요.`;
+  }
 
   const prompt = `학생이 ${dividend} ÷ ${divisor}의 몫을 어림했습니다.
 학생이 어림한 값: ${estimate}
-어림한 값 × 나누는 수: ${estimate} × ${divisor} = ${product} (나누어지는 수 ${dividend}${compareText})
+나누는 수 × 어림한 값: ${divisor} × ${estimate} = ${product} (나누어지는 수 ${dividend}${compareText}, 차이가 ${howMuch} 납니다)
 
 [판단 결과 — 이미 정해졌으니 절대 바꾸지 마세요]
-${isGood
-  ? `잘한 어림입니다. 몇십 수준으로 알맞게 어림했으니 칭찬해 주세요. ${direction === 'same' ? '' : `그리고 실제 몫은 ${estimate}보다 조금 ${direction === 'bigger' ? '작을' : '클'} 것이라고 덧붙여 주세요.`}`
-  : `아쉬운 어림입니다. "아쉽네요."로 시작하고, ${product}${compareText.replace('습니다', '다')}는 점을 짚으며 ${direction === 'bigger' ? '더 작은' : '더 큰'} 몇십으로 생각해 보라고 힌트를 주세요.`}
+${judgement}
 
 [작성 규칙]
-1. 존댓말을 쓰고, 이모지를 하나 정도 사용해 주세요.
-2. 답변은 2~3문장으로 짧게 써 주세요.
-3. 정답(실제 몫)을 직접 말하지 마세요.
-4. 위 판단 결과와 반대되는 말을 하지 마세요.`;
+1. 반드시 이 순서로 말해 주세요: ① "${divisor} × ${estimate} = ${product}" 곱셈 ② ${product}${direction === 'same' ? '와' : '를'} 나누어지는 수 ${dividend}와 비교 ③ 그래서 몫이 어떨지.
+2. 몫 크기를 말할 때는 "${unit}"이라는 말을 쓰세요. ${unit === '몇백' ? '"몇십"이라는 말은 쓰지 마세요.' : ''}
+3. 존댓말을 쓰고, 이모지는 하나만 쓰세요. 초등학교 3학년이 읽기 쉬운 짧은 문장으로 써 주세요.
+4. 3문장 이내로 써 주세요.
+5. 정답(실제 몫)을 직접 말하지 마세요.
+6. 위 판단 결과와 반대되는 말을 하지 마세요.`;
 
   try {
     const response = await fetch('/api/ai', {
@@ -222,9 +253,9 @@ const Plate = ({ id, label, children, highlight, total }) => {
         isOver ? 'border-sky-500 bg-sky-50' : 'border-pastelBlue'
       } ${highlight ? 'ring-4 ring-emerald-400' : ''}`}
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-base sm:text-lg font-bold text-sky-800">{label}</span>
-        <span className="inline-flex items-baseline gap-1.5 rounded-xl bg-sky-50 border-2 border-sky-200 px-2.5 py-0.5">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-base sm:text-lg font-bold text-sky-800 whitespace-nowrap">{label}</span>
+        <span className="inline-flex items-baseline gap-1.5 rounded-xl bg-sky-50 border-2 border-sky-200 px-2.5 py-0.5 whitespace-nowrap">
           <span className="text-sm sm:text-base font-bold text-sky-800">합계</span>
           <span className={`text-2xl sm:text-3xl font-extrabold text-sky-700 tabular-nums ${flash ? 'count-flash' : ''}`}>
             {total}
@@ -558,7 +589,10 @@ const App = () => {
       const feedback = await getAIFeedback(problem.dividend, problem.divisor, num, result);
       setAiFeedbackLoading(false);
       // AI가 판단과 반대로 말하면(잘했는데 '아쉽' 등) 기본 피드백을 사용
-      const contradicts = feedback && (result.isGood ? feedback.includes('아쉽') : !feedback.includes('아쉽'));
+      const contradicts = feedback && (
+        (result.isGood ? feedback.includes('아쉽') : !feedback.includes('아쉽')) ||
+        (result.unit === '몇백' && feedback.includes('몇십'))
+      );
       setAiFeedback(feedback && !contradicts ? feedback : basicFeedback);
     } else {
       setAiFeedback(basicFeedback);
@@ -894,7 +928,8 @@ const App = () => {
             개의 접시
           </span>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
+        {/* 접시가 많아도 세로셈을 밀어내지 않도록 폭에 맞춰 여러 줄로 놓기 */}
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
           {perPlateCounts.map((plate, index) => (
             <Plate
               key={index}
@@ -1180,7 +1215,7 @@ const App = () => {
 
               <div className="flex flex-col lg:flex-row gap-4">
                 {/* 왼쪽: 수모형 조작 영역 */}
-                <div className="flex-1 rounded-2xl border-2 border-pastelPink bg-white/90 px-4 py-3 sm:px-5 sm:py-4 flex flex-col gap-3">
+                <div className="flex-1 min-w-0 rounded-2xl border-2 border-pastelPink bg-white/90 px-4 py-3 sm:px-5 sm:py-4 flex flex-col gap-3">
                   <DndContext sensors={dndSensors} onDragEnd={handleDragEnd}>
                     <ToolBar />
                     <ManipulativeArea />
