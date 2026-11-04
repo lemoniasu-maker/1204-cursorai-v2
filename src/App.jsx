@@ -22,8 +22,11 @@ const hasBatchim = (n) => {
 const josa = (n, withBatchim, withoutBatchim) => `${n}${hasBatchim(n) ? withBatchim : withoutBatchim}`;
 
 // 어림한 값이 잘 맞는지 코드로 판단하기
-// - 몫이 세 자리: 백의 자리끼리 나눈 몇백(예: 513÷5 → 100)이거나, 실제 몫과의 차이가 75보다 작으면 잘한 어림
-//   예) 513÷5 → 100 잘함, 200 아쉬움 / 862÷2 → 400, 500 모두 잘함
+// - 몫이 세 자리
+//   · 몇백으로 어림: 백의 자리끼리 나눈 몇백(예: 513÷5 → 100)이거나, 실제 몫과의 차이가 75보다 작으면 잘한 어림
+//     예) 513÷5 → 100 잘함, 200 아쉬움 / 862÷2 → 400, 500 모두 잘함
+//   · 몇백몇십 등 더 자세히 어림: 실제 몫과의 차이가 30보다 작으면 잘한 어림
+//     예) 513÷5 → 110, 120 잘함 / 140, 150 아쉬움
 // - 몫이 두 자리: 실제 몫과의 차이가 10보다 작으면 잘한 어림 (예: 95÷2 → 40, 50 잘함)
 // - 몫이 한 자리: 정답과의 차이가 2 이하이면 잘한 어림(기존 기준 유지)
 const evaluateEstimate = (dividend, divisor, estimate) => {
@@ -31,7 +34,9 @@ const evaluateEstimate = (dividend, divisor, estimate) => {
   const quotient = Math.floor(exactQuotient);
   const product = estimate * divisor;
   const isGood = quotient >= 100
-    ? estimate === Math.floor(quotient / 100) * 100 || Math.abs(estimate - exactQuotient) < 75
+    ? (estimate % 100 === 0
+      ? estimate === Math.floor(quotient / 100) * 100 || Math.abs(estimate - exactQuotient) < 75
+      : Math.abs(estimate - exactQuotient) < 30)
     : quotient >= 10
       ? Math.abs(estimate - exactQuotient) < 10
       : Math.abs(estimate - quotient) <= 2;
@@ -43,6 +48,15 @@ const evaluateEstimate = (dividend, divisor, estimate) => {
   const degree = Math.abs(product - dividend) > dividend * 0.3 ? '꽤' : '조금';
   return { isGood, product, direction, exactWithRemainder, unit, degree };
 };
+
+// 어림한 수의 모양: 몇백 / 몇백몇십 / 몇십 (해당 없으면 빈 문자열)
+const estimateWord = (estimate, unit) => {
+  if (unit === '몇백') return estimate % 100 === 0 ? '몇백' : estimate % 10 === 0 ? '몇백몇십' : '';
+  if (unit === '몇십') return estimate % 10 === 0 ? '몇십' : '';
+  return '';
+};
+// 아쉬울 때 힌트에 쓰는 말
+const hintWord = (unit) => (unit === '몇백' ? '몇백이나 몇백몇십' : unit);
 
 // '~이에요/~예요' 고르기
 const ieyo = (n) => `${n}${hasBatchim(n) ? '이에요' : '예요'}`;
@@ -60,18 +74,17 @@ const buildEstimateFeedback = (dividend, divisor, estimate, result) => {
       const diff = dividend - product;
       return `정말 잘 어림했어요! ${calc} ${josa(product, '은', '는')} ${dividend}보다 ${diff} 작은데, ${josa(diff, '은', '는')} ${divisor}보다 작아요. 그러니까 몫은 ${josa(estimate, '이고', '고')} ${josa(diff, '이', '가')} 남겠죠? 👍`;
     }
-    // 어림한 수가 딱 몇백(몇십)일 때만 '몇백으로'라고 말함 (예: 120은 그냥 '잘 어림했어요')
-    const unitStep = unit === '몇백' ? 100 : unit === '몇십' ? 10 : 0;
-    const praise = unitStep && estimate % unitStep === 0 ? `${unit}으로 잘 어림했어요!` : '잘 어림했어요!';
+    // 어림한 수 모양에 맞춰 칭찬 (예: 100 → '몇백으로', 120 → '몇백몇십으로', 113 → '잘 어림했어요')
+    const praise = estimateWord(estimate, unit) ? `${estimateWord(estimate, unit)}으로 잘 어림했어요!` : '잘 어림했어요!';
     if (direction === 'smaller') {
       return `${praise} ${calc} ${josa(product, '은', '는')} ${dividend}보다 ${degree} 작아요. 그러니까 몫은 ${estimate}보다 ${degree} 크겠죠? 👍`;
     }
     return `${praise} ${calc} ${josa(product, '은', '는')} ${dividend}보다 ${degree} 커요. 그러니까 몫은 ${estimate}보다 ${degree} 작겠죠? 👍`;
   }
   if (direction === 'bigger') {
-    return `아쉽네요. ${calc} ${josa(product, '은', '는')} ${dividend}보다 너무 커요. ${estimate}보다 작은 ${unit}으로 다시 생각해 볼까요? 😊`;
+    return `아쉽네요. ${calc} ${josa(product, '은', '는')} ${dividend}보다 너무 커요. ${estimate}보다 작은 ${hintWord(unit)}으로 다시 생각해 볼까요? 😊`;
   }
-  return `아쉽네요. ${calc} ${josa(product, '은', '는')} ${dividend}보다 너무 작아요. ${estimate}보다 큰 ${unit}으로 다시 생각해 볼까요? 😊`;
+  return `아쉽네요. ${calc} ${josa(product, '은', '는')} ${dividend}보다 너무 작아요. ${estimate}보다 큰 ${hintWord(unit)}으로 다시 생각해 볼까요? 😊`;
 };
 
 // AI 피드백 요청 함수 (판단은 코드가 하고, AI는 말투만 다듬음)
@@ -92,7 +105,7 @@ const getAIFeedback = async (dividend, divisor, estimate, result) => {
   } else if (isGood) {
     judgement = `잘한 어림입니다. 알맞게 어림했다고 칭찬하고, ${product}는 ${dividend}보다 ${degree} ${direction === 'bigger' ? '크니까' : '작으니까'} 몫은 ${estimate}보다 ${degree} ${direction === 'bigger' ? '작을' : '클'} 것이라고 말해 주세요.`;
   } else {
-    judgement = `아쉬운 어림입니다. "아쉽네요."로 시작하고, ${product}는 ${dividend}보다 너무 ${direction === 'bigger' ? '크다' : '작다'}는 점을 짚으며 ${estimate}보다 ${direction === 'bigger' ? '작은' : '큰'} ${unit}으로 다시 생각해 보라고 힌트를 주세요.`;
+    judgement = `아쉬운 어림입니다. "아쉽네요."로 시작하고, ${product}는 ${dividend}보다 너무 ${direction === 'bigger' ? '크다' : '작다'}는 점을 짚으며 ${estimate}보다 ${direction === 'bigger' ? '작은' : '큰'} ${hintWord(unit)}으로 다시 생각해 보라고 힌트를 주세요.`;
   }
 
   const prompt = `학생이 ${dividend} ÷ ${divisor}의 몫을 어림했습니다.
@@ -104,7 +117,7 @@ ${judgement}
 
 [작성 규칙]
 1. 반드시 이 순서로 말해 주세요: ① "${divisor} × ${estimate} = ${product}" 곱셈 ② ${product}${direction === 'same' ? '와' : '를'} 나누어지는 수 ${dividend}와 비교 ③ 그래서 몫이 어떨지.
-2. 몫 크기를 말할 때는 "${unit}"이라는 말을 쓰세요. ${unit === '몇백' ? '"몇십"이라는 말은 쓰지 마세요.' : ''}
+2. ${unit === '몇백' ? '몫 크기를 말할 때는 "몇백"이나 "몇백몇십"이라는 말을 쓰고, "몇백" 없이 "몇십"만 쓰지 마세요.' : `몫 크기를 말할 때는 "${unit}"이라는 말을 쓰세요.`}
 3. 존댓말을 쓰고, 이모지는 하나만 쓰세요. 초등학교 3학년이 읽기 쉬운 짧은 문장으로 써 주세요.
 4. 3문장 이내로 써 주세요.
 5. 정답(실제 몫)을 직접 말하지 마세요.
@@ -591,7 +604,7 @@ const App = () => {
       // AI가 판단과 반대로 말하면(잘했는데 '아쉽' 등) 기본 피드백을 사용
       const contradicts = feedback && (
         (result.isGood ? feedback.includes('아쉽') : !feedback.includes('아쉽')) ||
-        (result.unit === '몇백' && feedback.includes('몇십'))
+        (result.unit === '몇백' && feedback.replaceAll('몇백몇십', '').includes('몇십'))
       );
       setAiFeedback(feedback && !contradicts ? feedback : basicFeedback);
     } else {
